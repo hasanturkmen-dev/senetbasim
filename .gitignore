@@ -1,0 +1,17 @@
+# Node modülleri (Bunu kesinlikle göndermiyoruz)
+node_modules/
+
+# Test için üretilen PDF dosyaları
+*.pdf
+
+# SQLite Veritabanı dosyaları (Ofisteki veritabanı ezilmesin diye)
+*.sqlite
+*.db
+*.sqlite3
+
+# İşletim sistemi kalıntıları
+.DS_Store
+Thumbs.db
+
+# Log dosyaları
+*.log
