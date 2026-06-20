@@ -140,14 +140,25 @@ ipcMain.handle('senet-bas', async (event, veri, koordinatlar) => {
 
                         let xPoint = data.x * paperWidth;
                         let yPoint = ((1 - data.y) * paperHeight) - 10;
+                        
+                        // ÖN YÜZDEN GELEN DİNAMİK TASARIM AYARLARI
+                        let customSize = data.fontSize || 11;
+                        let isBold = data.isBold || false;
 
                         // UZUN METİNLERİ AŞAĞI KAYDIRMA (TEXT-WRAP) ZEKASI
                         if (id === 'prev_unvan') {
-                            drawWrappedText(page, yazi, xPoint, yPoint, 230, ozelFont, 10);
+                            drawWrappedText(page, yazi, xPoint, yPoint, 230, ozelFont, customSize);
                         } else if (id === 'prev_adres') {
-                            drawWrappedText(page, yazi, xPoint, yPoint, 230, ozelFont, 9);
+                            drawWrappedText(page, yazi, xPoint, yPoint, 230, ozelFont, customSize);
                         } else {
-                            page.drawText(yazi, { x: xPoint, y: yPoint, size: 11, font: ozelFont, color: rgb(0,0,0) });
+                            // NORMAL YAZIM
+                            page.drawText(yazi, { x: xPoint, y: yPoint, size: customSize, font: ozelFont, color: rgb(0,0,0) });
+                            
+                            // EFSANE 'FAKE BOLD' ZEKASI (Türkçe karakterleri bozmadan kalınlaştırma)
+                            if (isBold) {
+                                page.drawText(yazi, { x: xPoint + 0.3, y: yPoint, size: customSize, font: ozelFont, color: rgb(0,0,0) });
+                                page.drawText(yazi, { x: xPoint, y: yPoint + 0.1, size: customSize, font: ozelFont, color: rgb(0,0,0) });
+                            }
                         }
                     }
                     
@@ -177,15 +188,6 @@ ipcMain.handle('gecmisten-yazdir', async (event, islemId) => {
 
             try {
                 const koordinatlar = JSON.parse(row.koordinatlar);
-                
-                // MİLİMETRİK KALİBRASYON HESAPLAMASI (1 mm = 2.83465 Puan)
-                // Kayıt esnasında girilen kalibrasyon ofsetleri okunur
-                const formVerisi = JSON.parse(row.koordinatlar); 
-                const calibXPoints = (koordinatlar.prev_unvan.calibX || 0) * 2.83465; 
-                // Burada frontend tarafı her elemanın içine calib vermediği için row veritabanına bakabiliriz
-                // Ama en temizi en güncel kalibrasyonu form parametrelerinden veya veritabanından çekmektir.
-                
-                // 1. MADDE: KUSURSUZ A5 BOYUTLARI (210 x 148 mm)
                 const paperWidth = 210 * 2.83465; 
                 const paperHeight = 148 * 2.83465; // Tam 148 mm A5 formatı
                 
@@ -220,22 +222,52 @@ ipcMain.handle('gecmisten-yazdir', async (event, islemId) => {
                         if (id === 'prev_tutar') yazi = guncelTutarFormatli;
                         if (id === 'prev_tutar_yazi') yazi = guncelTutarYazi;
 
-                        // Ekrandaki yüzdelik konumu A5 kağıdına milimetrik vuruyoruz
                         let xPoint = data.x * paperWidth;
                         let yPoint = ((1 - data.y) * paperHeight) - 10;
 
-                        // 5. MADDE: SENET ÜZERİNDE TAŞAN BORÇLU VE ADRES ALANINI AŞAĞI KAYDIRMA
+                        // ÖN YÜZDEN GELEN DİNAMİK TASARIM AYARLARI
+                        let customSize = data.fontSize || 11;
+                        let isBold = data.isBold || false;
+
+                        // UZUN METİNLERİ AŞAĞI KAYDIRMA (TEXT-WRAP) ZEKASI
                         if (id === 'prev_unvan') {
-                            drawWrappedText(page, yazi, xPoint, yPoint, 240, ozelFont, 10);
+                            drawWrappedText(page, yazi, xPoint, yPoint, 240, ozelFont, customSize);
                         } else if (id === 'prev_adres') {
-                            drawWrappedText(page, yazi, xPoint, yPoint, 240, ozelFont, 9);
+                            drawWrappedText(page, yazi, xPoint, yPoint, 240, ozelFont, customSize);
                         } else {
-                            page.drawText(yazi, { x: xPoint, y: yPoint, size: 11, font: ozelFont, color: rgb(0,0,0) });
+                            page.drawText(yazi, { x: xPoint, y: yPoint, size: customSize, font: ozelFont, color: rgb(0,0,0) });
+                            
+                            // EFSANE 'FAKE BOLD' ZEKASI 
+                            if (isBold) {
+                                page.drawText(yazi, { x: xPoint + 0.3, y: yPoint, size: customSize, font: ozelFont, color: rgb(0,0,0) });
+                                page.drawText(yazi, { x: xPoint, y: yPoint + 0.1, size: customSize, font: ozelFont, color: rgb(0,0,0) });
+                            }
                         }
                     }
                     fs.writeFileSync(path.join(ciktiKlasoru, `Senet_${guncelSenetNo || 'Isimsiz'}_Taksit_${i+1}.pdf`), await pdfDoc.save());
                 }
-                shell.openPath(ciktiKlasoru); resolve({ success: true });
+                
+                // Kayıtlı yazıcı varsa ona yazdır
+                const settingsPath = path.join(__dirname, 'print_settings.json');
+                if (fs.existsSync(settingsPath)) {
+                    const settings = JSON.parse(fs.readFileSync(settingsPath));
+                    if (settings.printerName) {
+                        const files = fs.readdirSync(ciktiKlasoru).filter(f => f.endsWith('.pdf'));
+                        for (const file of files) {
+                            try {
+                                await print(path.join(ciktiKlasoru, file), { printer: settings.printerName });
+                            } catch (e) {
+                                console.error("Geçmişten yazdırma hatası:", e);
+                            }
+                        }
+                    } else {
+                        shell.openPath(ciktiKlasoru); // Yazıcı yoksa klasörü aç
+                    }
+                } else {
+                    shell.openPath(ciktiKlasoru); // Yazıcı ayarı yoksa klasörü aç
+                }
+                
+                resolve({ success: true });
             } catch (err) { resolve({ success: false, error: err.message }); }
         });
     });
@@ -292,7 +324,6 @@ ipcMain.handle('teslim-fisi-bas', async (event, veri) => {
                     page.drawText(formatliVade, { x: cols[3].x + 10, y: currentY + 6, size: 9, font: ozelFont });
                     page.drawText(formatliSenetTutari, { x: cols[4].x + 15, y: currentY + 6, size: 9, font: ozelFont });
 
-                    // 4. MADDE: ÜNVAN ÇOK UZUNSA SÜTUNA SIĞDIRMA VE KAYDIRMA (Wrap)
                     drawWrappedText(page, veri.unvan, cols[2].x + 5, currentY + 6, 205, ozelFont, 8, 0);
                 }
                 currentY -= rowHeight;
@@ -305,7 +336,18 @@ ipcMain.handle('teslim-fisi-bas', async (event, veri) => {
             page.drawRectangle({ x: 410, y: currentY - 20, width: 120, height: 30, borderWidth: 1, borderColor: rgb(0,0,0) });
             page.drawText(formatliToplam + " TL", { x: 420, y: currentY - 10, size: 11, font: ozelFont });
 
-            fs.writeFileSync(path.join(__dirname, `Teslim_Fisi_SenetID_${veri.senetGecmisId}.pdf`), await pdfDoc.save());
+            const dosyaYolu = path.join(__dirname, `Teslim_Fisi_SenetID_${veri.senetGecmisId}.pdf`);
+            fs.writeFileSync(dosyaYolu, await pdfDoc.save());
+            
+            // Eğer yazıcı seçiliyse anında teslim fişini de bas
+            if (veri.printerName) {
+                try {
+                    await print(dosyaYolu, { printer: veri.printerName });
+                } catch (e) {
+                    console.error("Teslim Fişi yazdırma hatası:", e);
+                }
+            }
+
             db.run(`INSERT INTO teslim_fisleri (senet_gecmis_id, duzenleme_tarihi) VALUES (?, ?)`, [veri.senetGecmisId, veri.duzenlemeTarihi], () => resolve({ success: true }));
         } catch (err) { resolve({ success: false, error: err.message }); }
     });
@@ -313,7 +355,6 @@ ipcMain.handle('teslim-fisi-bas', async (event, veri) => {
 
 ipcMain.handle('gecmis-getir', async () => {
     return new Promise((resolve) => {
-        // 3. MADDE: 'Seçilen Ortak' YERİNE GERÇEK TİCARİ ÜNVANI BİRLEŞTİREREK ÇEKİYORUZ
         const sql = `
             SELECT s.id as islem_id, s.toplam_tutar, s.taksit_sayisi, s.baslangic_vadesi,
                    t.id as teslim_fisi_id, t.duzenleme_tarihi, o.ticari_unvan
@@ -333,6 +374,7 @@ ipcMain.handle('ortaklari-getir', async () => { return new Promise((resolve) => 
 ipcMain.handle('excel-oku', async () => { const { canceled, filePaths } = await dialog.showOpenDialog({ properties: ['openFile'], filters: [{ name: 'Excel', extensions: ['xlsx', 'xls'] }] }); if (canceled) return { success: false }; try { const workbook = xlsx.readFile(filePaths[0]); const data = xlsx.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: '', raw: false }); const clean = data.map(r => { if(r['Vergi No']) r['Vergi No'] = String(r['Vergi No']).replace(/\.0$/, '').trim(); if(r['T.C. Kimlik No']) r['T.C. Kimlik No'] = String(r['T.C. Kimlik No']).replace(/\.0$/, '').trim(); return r; }); return { success: true, data: clean }; } catch(e){ return { success: false, error: e.message }; } });
 ipcMain.handle('excel-kaydet', async (e, data) => { return new Promise((resolve) => { db.serialize(() => { db.run('BEGIN TRANSACTION'); const stmt = db.prepare("INSERT INTO ortaklar (ticari_unvan, adi, soyadi, ili, vergi_dairesi, vergi_no, tc_kimlik, adresi) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"); data.forEach(r => stmt.run(r['Ticari Unvanı']||'', r['Adı']||'', r['Soyadı']||'', r['İli']||'', r['Vergi Dairesi']||'', r['Vergi No']||'', r['T.C. Kimlik No']||'', r['Adresi']||'')); stmt.finalize(); db.run('COMMIT', () => resolve({ success: true })); }); }); });
 ipcMain.handle('manuel-ortak-ekle', async (e, d) => { return new Promise((resolve) => { db.run("INSERT INTO ortaklar (ticari_unvan, adi, soyadi, ili, vergi_dairesi, vergi_no, tc_kimlik, adresi) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", [d.unvan, d.ad, d.soyad, d.il, d.vd, d.vkn, d.tc, d.adres], () => resolve({ success: true })); }); });
+
 // --- YAZICI LİSTELEME VE AYAR HAFIZASI ---
 ipcMain.handle('get-printers', async () => {
     return await BrowserWindow.getAllWindows()[0].webContents.getPrintersAsync();
@@ -349,22 +391,3 @@ ipcMain.handle('get-print-settings', () => {
     }
     return { printerName: '' };
 });
-
-// --- AKILLI METİN KAYDIRMA (TEXT-WRAP) MOTORU ---
-function drawWrappedText(page, text, x, y, maxWidth, font, fontSize, lineSpacing = 12) {
-    const words = text.split(' ');
-    let line = '';
-    let currentY = y;
-    for (let n = 0; n < words.length; n++) {
-        let testLine = line + words[n] + ' ';
-        let testWidth = font.widthOfTextAtSize(testLine, fontSize);
-        if (testWidth > maxWidth && n > 0) {
-            page.drawText(line.trim(), { x, y: currentY, size: fontSize, font, color: rgb(0, 0, 0) });
-            line = words[n] + ' ';
-            currentY -= lineSpacing;
-        } else {
-            line = testLine;
-        }
-    }
-    page.drawText(line.trim(), { x, y: currentY, size: fontSize, font, color: rgb(0, 0, 0) });
-}

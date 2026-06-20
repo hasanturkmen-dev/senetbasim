@@ -23,6 +23,13 @@
         .history-table th, .history-table td { padding: 12px 15px; border-bottom: 1px solid #e2e8f0; font-size: 13px; }
         .history-table th { background-color: #f1f5f9; font-weight: 600; color: #475569; position: sticky; top: 0; }
         .history-table tr:hover { background-color: #f8fafc; }
+
+        /* YENİ: Milimetrik Kalibrasyon için Seçili Eleman Stili */
+        .active-element {
+            outline: 2px dashed #38bdf8;
+            background-color: rgba(56, 189, 248, 0.15);
+            z-index: 50;
+        }
     </style>
 </head>
 <body>
@@ -40,7 +47,29 @@
                     <h2>SENET AYARLARI</h2>
                 </div>
                 <form id="dataForm">
+                    
+                    <div class="form-group" style="background: #f8fafc; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 15px;">
+                        <label for="printerSelect" style="color: #0f172a; font-weight: bold;">🖨 Yazıcı Seçimi</label>
+                        <select id="printerSelect" class="form-control" style="font-size: 13px; margin-top: 5px;">
+                            <option value="">Yazıcı Yükleniyor...</option>
+                        </select>
+                    </div>
+
                     <div class="form-group">
+                        <div id="tasarimPaneli" style="background: #eff6ff; padding: 10px; border: 1px dashed #3b82f6; border-radius: 6px; margin-bottom: 15px; display: none;">
+                        <label style="color: #1e3a8a; font-weight: bold; font-size: 12px; display: block; margin-bottom: 5px;">🎨 Seçili Öğe Ayarları</label>
+                        <div id="seciliOgeAdi" style="font-size: 11px; color: #64748b; margin-bottom: 8px;">Hiçbir öğe seçilmedi</div>
+                        
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <div style="flex: 1;">
+                                <span style="font-size: 10px; color: #475569;">Boyut (pt)</span>
+                                <input type="number" id="ogeBoyut" class="form-control" value="11" min="6" max="36" style="padding: 4px; font-size: 13px;">
+                            </div>
+                            <div style="flex: 1; padding-top: 14px;">
+                                <button type="button" id="btnKalınYap" class="btn-sm" style="width: 100%; background: #e2e8f0; color: #0f172a; border: 1px solid #cbd5e1; cursor: pointer; font-weight: bold;">Kalın (B)</button>
+                            </div>
+                        </div>
+                    </div>
                         <label for="ortakSelect">Cari / Ortak Seçimi</label>
                         <div style="display: flex; gap: 5px; margin-bottom: 5px;">
                             <button type="button" class="btn-sm" style="background:#10b981; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer; flex:1;" id="btnExcelAktar">Excel İçe Aktar</button>
@@ -71,45 +100,42 @@
                         <input type="date" id="vadeTarihi" class="form-control">
                     </div>
 
-                    <div style="background: #f8fafc; border: 1px dashed #cbd5e1; padding: 12px; border-radius: 6px; margin-bottom: 15px;">
-                        <label style="font-size: 12px; font-weight: bold; color: #475569; display: block; margin-bottom: 8px;">🖨 Yazıcı İnce Kalibrasyon (mm)</label>
-                        <div style="display: flex; gap: 10px;">
-                            <div style="flex: 1;">
-                                <span style="font-size:11px; color:#64748b;">X (Sağ/Sol)</span>
-                                <input type="number" id="calibX" class="form-control" value="0" step="0.5" style="padding: 4px 8px; font-size: 13px;">
-                            </div>
-                            <div style="flex: 1;">
-                                <span style="font-size:11px; color:#64748b;">Y (Yukarı/Aşağı)</span>
-                                <input type="number" id="calibY" class="form-control" value="0" step="0.5" style="padding: 4px 8px; font-size: 13px;">
-                            </div>
-                        </div>
-                    </div>
-
                     <div class="btn-group">
-                        <button type="button" class="btn btn-primary" id="btnSenetBas">Senet Bas</button>
-                        <button type="button" class="btn btn-secondary" id="btnTeslimFisi">Teslim Fişi</button>
+                        <button type="button" class="btn btn-primary" id="btnSenetBas">Senet Bas & Yazdır</button>
+                        <button type="button" class="btn btn-secondary" id="btnTeslimFisi">Teslim Fişi Üret</button>
                     </div>
                 </form>
             </div>
 
-            <div class="workspace">
-                <div class="canvas-area" id="senetCanvas">
-                    <div class="draggable" id="prev_senetno" style="top: 22%; left: 86%;">GRT-1</div>
-                    <div class="draggable" id="prev_il" style="top: 22%; left: 35%;">İZMİR</div>
-                    <div class="draggable" id="prev_vade" style="top: 22%; left: 60%;">28.02.2026</div>
-                    <div class="draggable" id="prev_tutar" style="top: 22%; left: 70%;"># 5.000,00 #</div>
-                    <div class="draggable" id="prev_vade_yazi" style="top: 28%; left: 60%;">28 Şubat 2026</div>
-                    <div class="draggable" id="prev_tutar_yazi" style="top: 37%; left: 55%;"># BEŞBİN #</div>
-                    <div class="draggable" id="prev_unvan" style="top: 56%; left: 46%;">ÖRNEK OPTİK TİC. LTD. ŞTİ.</div>
-                    <div class="draggable" id="prev_adres" style="top: 65%; left: 46%;">Örnek Mah. Test Sok. No:1 Konak/İzmir</div>
-                    <div class="draggable" id="prev_vd" style="top: 74%; left: 46%;">Kemeraltı V.D.</div>
-                    <div class="draggable" id="prev_kimlik" style="top: 79%; left: 46%;">1234567890</div>
-                    <div class="draggable" id="prev_m1" style="top: 41%; left: 66%;">M</div>
-                    <div class="draggable" id="prev_icra" style="top: 45%; left: 50%;">izmir icra</div>
-                    <div class="draggable" id="prev_m2" style="top: 50%; left: 46%;">M</div>
+            <div class="workspace" style="position: relative; display: flex; justify-content: center; align-items: center; background-color: #e2e8f0; padding: 20px;">
+                
+                <div style="position: absolute; top: 15px; left: 15px; background: rgba(15, 23, 42, 0.85); color: white; padding: 10px 15px; border-radius: 6px; font-size: 13px; z-index: 50; backdrop-filter: blur(4px);">
+                    💡 <b>Hassas Kalibrasyon:</b> Tuvaldeki yazılara tıklayın ve klavyenizdeki <b>YÖN OKLARI (⬅️ ➡️ ⬆️ ⬇️)</b> ile milimetrik ayarlayın.
+                </div>
+
+                <div class="canvas-area" id="senetCanvas" style="width: 800px; height: 552px; background-image: url('senet.jpg'); background-size: 100% 100%; background-position: center; background-repeat: no-repeat; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border: 1px solid #cbd5e1;">
+                    
+                    <div class="draggable" id="prev_senetno" style="top: 18.62%; left: 84.76%;">GRT-1</div>
+                    <div class="draggable" id="prev_il" style="top: 18.62%; left: 34.76%;">İZMİR</div>
+                    <div class="draggable" id="prev_vade" style="top: 18.62%; left: 58.57%;">28.02.2026</div>
+                    <div class="draggable" id="prev_tutar" style="top: 18.62%; left: 70.00%;"># 5.000,00 #</div>
+                    
+                    <div class="draggable" id="prev_vade_yazi" style="top: 24.13%; left: 61.90%;">28 Şubat 2026</div>
+                    <div class="draggable" id="prev_tutar_yazi" style="top: 32.41%; left: 52.85%;"># BEŞBİN #</div>
+                    
+                    <div class="draggable" id="prev_m1" style="top: 37.10%; left: 64.76%;">M</div>
+                    <div class="draggable" id="prev_icra" style="top: 40.68%; left: 50.00%;">İzmir İcra</div>
+                    <div class="draggable" id="prev_m2" style="top: 44.68%; left: 45.23%;">M</div>
+                    
+                    <div class="draggable" id="prev_unvan" style="top: 51.03%; left: 46.00%; max-width: 320px;">ÖRNEK OPTİK TİC. LTD. ŞTİ.</div>
+                    <div class="draggable" id="prev_adres" style="top: 60.00%; left: 46.00%; max-width: 320px;">Örnek Mah. Test Sok. No:1 Konak/İzmir</div>
+                    
+                    <div class="draggable" id="prev_vd" style="top: 68.27%; left: 46.00%;">Kemeraltı V.D.</div>
+                    <div class="draggable" id="prev_vkn" style="top: 72.41%; left: 46.00%;">Vergi No</div>
+                    <div class="draggable" id="prev_tc" style="top: 76.50%; left: 46.00%;">TC Kimlik No</div>
                 </div>
             </div>
-        </div>
+        </div>>
 
         <div class="page" id="sayfaGecmis" style="flex-direction: column; padding: 30px;">
             <div class="history-header">
@@ -146,7 +172,7 @@
             <div class="modal-body" id="visualPreviewsContainer"></div>
             <div class="modal-footer">
                 <button class="btn btn-cancel" id="btnIptal">İptal Et / Düzenle</button>
-                <button class="btn btn-confirm" id="btnOnayla">Kusursuz, Onayla ve Yazdır!</button>
+                <button class="btn btn-confirm" id="btnOnayla">Kusursuz, Kaydet ve YAZDIR!</button>
             </div>
         </div>
     </div>
@@ -196,7 +222,7 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-cancel" id="btnTeslimIptal">Kapat</button>
-                <button class="btn btn-confirm" id="btnTeslimOnayla">Kusursuz, Yazdır!</button>
+                <button class="btn btn-confirm" id="btnTeslimOnayla">Kusursuz, Kaydet ve YAZDIR!</button>
             </div>
         </div>
     </div>
@@ -208,18 +234,8 @@
                 <span id="excelToplamKayit" style="font-size: 13px; color: #10b981; font-weight: bold; background: #ecfdf5; padding: 5px 12px; border-radius: 4px; margin-right: 25px;">0 Kayıt</span>
             </div>
             <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
-                <p style="font-size: 13px; color: #64748b; margin-bottom: 10px;">Aşağıdaki veriler veritabanına aktarılacaktır. Kontrol edip onaylayın.</p>
                 <table class="history-table">
-                    <thead>
-                        <tr>
-                            <th>Ünvan</th>
-                            <th>Ad Soyad</th>
-                            <th>İl</th>
-                            <th>Vergi Dairesi</th>
-                            <th>VKN / TC</th>
-                            <th>Adres</th>
-                        </tr>
-                    </thead>
+                    <thead><tr><th>Ünvan</th><th>Ad Soyad</th><th>İl</th><th>Vergi Dairesi</th><th>VKN / TC</th><th>Adres</th></tr></thead>
                     <tbody id="excelPreviewBody"></tbody>
                 </table>
             </div>
@@ -260,57 +276,39 @@
     const sayfaSenetBas = document.getElementById('sayfaSenetBas');
     const sayfaGecmis = document.getElementById('sayfaGecmis');
     const gecmisTabloGövdesi = document.getElementById('gecmisTabloGövdesi');
+    const printerSelect = document.getElementById('printerSelect');
 
     navSenetBas.addEventListener('click', () => {
-        navSenetBas.classList.add('active');
-        navGecmis.classList.remove('active');
-        sayfaSenetBas.classList.add('active');
-        sayfaGecmis.classList.remove('active');
+        navSenetBas.classList.add('active'); navGecmis.classList.remove('active');
+        sayfaSenetBas.classList.add('active'); sayfaGecmis.classList.remove('active');
     });
 
     navGecmis.addEventListener('click', async () => {
-        navGecmis.classList.add('active');
-        navSenetBas.classList.remove('active');
-        sayfaSenetBas.classList.remove('active');
-        sayfaGecmis.classList.add('active');
-        
+        navGecmis.classList.add('active'); navSenetBas.classList.remove('active');
+        sayfaSenetBas.classList.remove('active'); sayfaGecmis.classList.add('active');
         gecmisTabloGövdesi.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 20px;">Veriler yükleniyor...</td></tr>';
         
         try {
             const sonuc = await window.api.gecmisGetir();
             if (sonuc.success) {
                 gecmisTabloGövdesi.innerHTML = '';
-                
-                if (sonuc.data.length === 0) {
-                    gecmisTabloGövdesi.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 20px;">Henüz bir işlem bulunmuyor.</td></tr>';
-                    return;
-                }
+                if (sonuc.data.length === 0) return gecmisTabloGövdesi.innerHTML = '<tr><td colspan="7" style="text-align:center;">İşlem bulunmuyor.</td></tr>';
 
                 sonuc.data.forEach(kayit => {
                     const vTarih = kayit.baslangic_vadesi.split('-').reverse().join('.');
                     const formatliTutar = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2 }).format(kayit.toplam_tutar);
-                    const teslimDurumu = kayit.teslim_fisi_id 
-                        ? `<span style="color: #10b981; font-weight: bold;">✔ Kesildi (Tarih: ${kayit.duzenleme_tarihi.split('-').reverse().join('.')})</span>` 
-                        : `<span style="color: #ef4444;">✖ Bekliyor</span>`;
-
+                    const teslimDurumu = kayit.teslim_fisi_id ? `<span style="color: #10b981; font-weight: bold;">✔ Kesildi</span>` : `<span style="color: #ef4444;">✖ Bekliyor</span>`;
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
-                        <td>#${kayit.islem_id}</td>
-                        <td><strong>${kayit.ticari_unvan || 'Bilinmeyen Cari'}</strong></td>
-                        <td>${formatliTutar} ₺</td>
-                        <td>${kayit.taksit_sayisi} Ay</td>
-                        <td>${vTarih}</td>
-                        <td>${teslimDurumu}</td>
+                        <td>#${kayit.islem_id}</td><td><strong>${kayit.ticari_unvan || 'Bilinmeyen Cari'}</strong></td>
+                        <td>${formatliTutar} ₺</td><td>${kayit.taksit_sayisi} Ay</td><td>${vTarih}</td><td>${teslimDurumu}</td>
                         <td style="display: flex; gap: 5px;">
-                            <button class="btn-sm" style="background-color: #3b82f6; color: white; border: none; cursor: pointer;">Detaylar</button>
-                            <button class="btn-sm" style="background-color: #10b981; color: white; border: none; cursor: pointer;" onclick="gecmistenYazdir(${kayit.islem_id})">PDF Üret</button>
+                            <button class="btn-sm" style="background-color: #10b981; color: white; border: none; cursor: pointer;" onclick="gecmistenYazdir(${kayit.islem_id})">PDF Üret & Yazdır</button>
                         </td>
                     `;
                     gecmisTabloGövdesi.appendChild(tr);
                 });
-            } else {
-                gecmisTabloGövdesi.innerHTML = `<tr><td colspan="7" style="text-align:center; color: red;">Hata: ${sonuc.error}</td></tr>`;
-            }
+            } else { gecmisTabloGövdesi.innerHTML = `<tr><td colspan="7" style="text-align:center; color: red;">Hata: ${sonuc.error}</td></tr>`; }
         } catch (err) { console.error(err); }
     });
 
@@ -320,6 +318,12 @@
     const ortakSelect = document.getElementById('ortakSelect');
     let tumOrtaklar = []; 
 
+    // TASARIM PANELİ DEĞİŞKENLERİ
+    const tasarimPaneli = document.getElementById('tasarimPaneli');
+    const seciliOgeAdi = document.getElementById('seciliOgeAdi');
+    const ogeBoyutInp = document.getElementById('ogeBoyut');
+    const btnKalinYap = document.getElementById('btnKalınYap');
+
     async function listeyiGuncelle() {
         try {
             const sonuc = await window.api.ortaklariGetir();
@@ -328,30 +332,54 @@
                 ortakSelect.innerHTML = '<option value="">Ortak seçiniz veya arayınız...</option>';
                 tumOrtaklar.forEach(ortak => {
                     const opt = document.createElement('option');
-                    opt.value = ortak.id;
-                    opt.textContent = ortak.ticari_unvan;
+                    opt.value = ortak.id; opt.textContent = ortak.ticari_unvan;
                     ortakSelect.appendChild(opt);
                 });
             }
         } catch (error) { console.error("Ortaklar yüklenirken hata:", error); }
     }
 
-    window.addEventListener('DOMContentLoaded', () => {
+    window.addEventListener('DOMContentLoaded', async () => {
+        // --- 1. YAZICI LİSTESİNİ VE HAFIZAYI ÇEK ---
+        try {
+            const printers = await window.api.getPrinters();
+            printerSelect.innerHTML = '<option value="">Lütfen Yazıcı Seçin</option>';
+            printers.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.name; opt.textContent = p.name;
+                printerSelect.appendChild(opt);
+            });
+            const settings = await window.api.getPrintSettings();
+            if(settings && settings.printerName) printerSelect.value = settings.printerName;
+        } catch(e) { console.error("Yazıcılar yüklenemedi", e); }
+
+        // --- 2. KOORDİNATLARI VE TASARIMLARI ÇEK ---
         draggables.forEach(elem => {
             const savedPos = localStorage.getItem('pos_' + elem.id);
             if (savedPos) {
                 const pos = JSON.parse(savedPos);
-                elem.style.left = pos.left;
-                elem.style.top = pos.top;
+                if (pos.left) elem.style.left = pos.left; 
+                if (pos.top) elem.style.top = pos.top;
+                
+                // Tasarımları uygula
+                let loadSize = pos.fontSize || 11;
+                elem.style.fontSize = loadSize + 'px';
+                if (pos.isBold) elem.style.fontWeight = 'bold';
+            } else {
+                elem.style.fontSize = '11px'; // Varsayılan boyut
             }
         });
         listeyiGuncelle();
     });
 
+    // Yazıcı değiştiğinde hafızaya kaydet
+    printerSelect.addEventListener('change', () => {
+        window.api.savePrintSettings({ printerName: printerSelect.value });
+    });
+
     ortakSelect.addEventListener('change', (e) => {
         const secilenId = e.target.value;
         if (!secilenId) return;
-
         const secilenOrtak = tumOrtaklar.find(o => o.id == secilenId);
         if (secilenOrtak) {
             document.getElementById('prev_unvan').innerText = secilenOrtak.ticari_unvan || '';
@@ -359,26 +387,81 @@
             document.getElementById('prev_il').innerText = secilenOrtak.ili || '';
             document.getElementById('prev_vd').innerText = secilenOrtak.vergi_dairesi || '';
             
-            if (secilenOrtak.tc_kimlik && secilenOrtak.tc_kimlik.trim() !== '') {
-                document.getElementById('prev_kimlik').innerText = secilenOrtak.tc_kimlik;
-            } else {
-                document.getElementById('prev_kimlik').innerText = secilenOrtak.vergi_no || '';
-            }
+            // YENİ: VKN VE TC'Yİ KENDİ SATIRLARINA DAĞIT
+            document.getElementById('prev_vkn').innerText = secilenOrtak.vergi_no || '';
+            document.getElementById('prev_tc').innerText = secilenOrtak.tc_kimlik || '';
         }
     });
 
+    // ==========================================
+    // SÜRÜKLE BIRAK, MİLİMETRİK KALİBRASYON VE TASARIM ZEKASI
+    // ==========================================
     let activeElement = null; let offsetX = 0; let offsetY = 0;
+
+    // Farenin tuşa basılması (Seçim, Sürükleme Başlangıcı ve Panel Açılışı)
     draggables.forEach(elem => {
         elem.addEventListener('mousedown', (e) => {
+            draggables.forEach(el => el.classList.remove('active-element'));
             activeElement = elem;
+            elem.classList.add('active-element');
+            
+            // Tasarım panelini aktifleştir ve değerleri oku
+            tasarimPaneli.style.display = 'block';
+            seciliOgeAdi.innerText = "Seçili: " + (elem.id.replace('prev_', '').toUpperCase());
+            
+            let currentSize = parseInt(elem.style.fontSize) || 11;
+            ogeBoyutInp.value = currentSize;
+
+            let isBold = elem.style.fontWeight === 'bold';
+            btnKalinYap.style.background = isBold ? '#3b82f6' : '#e2e8f0';
+            btnKalinYap.style.color = isBold ? 'white' : '#0f172a';
+
             const rect = elem.getBoundingClientRect();
             offsetX = e.clientX - rect.left;
             offsetY = e.clientY - rect.top;
         });
     });
 
-    document.addEventListener('mousemove', (e) => {
+    // Tuval dışına tıklanırsa seçimi kaldır ve paneli gizle
+    document.addEventListener('mousedown', (e) => {
+        if (!e.target.classList.contains('draggable') && !tasarimPaneli.contains(e.target) && activeElement) {
+            activeElement.classList.remove('active-element');
+            activeElement = null;
+            tasarimPaneli.style.display = 'none';
+        }
+    });
+
+    // TASARIM PANELİ DEĞİŞİKLİK DİNLEYİCİLERİ
+    ogeBoyutInp.addEventListener('input', (e) => {
         if (!activeElement) return;
+        activeElement.style.fontSize = e.target.value + 'px';
+        kaydetKonumVeTasarim(activeElement);
+    });
+
+    btnKalinYap.addEventListener('click', () => {
+        if (!activeElement) return;
+        let isBold = activeElement.style.fontWeight === 'bold';
+        activeElement.style.fontWeight = isBold ? 'normal' : 'bold';
+        
+        btnKalinYap.style.background = !isBold ? '#3b82f6' : '#e2e8f0';
+        btnKalinYap.style.color = !isBold ? 'white' : '#0f172a';
+        kaydetKonumVeTasarim(activeElement);
+    });
+
+    // Ortak Kaydetme Fonksiyonu
+    function kaydetKonumVeTasarim(elem) {
+        const pos = { 
+            left: elem.style.left, 
+            top: elem.style.top,
+            fontSize: parseInt(elem.style.fontSize) || 11,
+            isBold: elem.style.fontWeight === 'bold'
+        };
+        localStorage.setItem('pos_' + elem.id, JSON.stringify(pos));
+    }
+
+    // Fareyle sürükleme
+    document.addEventListener('mousemove', (e) => {
+        if (!activeElement || e.buttons !== 1) return;
         const canvasRect = canvas.getBoundingClientRect();
         let newLeft = e.clientX - canvasRect.left - offsetX;
         let newTop = e.clientY - canvasRect.top - offsetY;
@@ -392,14 +475,36 @@
         activeElement.style.top = newTop + 'px';
     });
 
-    document.addEventListener('mouseup', () => {
-        if (activeElement) {
-            const pos = { left: activeElement.style.left, top: activeElement.style.top };
-            localStorage.setItem('pos_' + activeElement.id, JSON.stringify(pos));
-            activeElement = null;
-        }
+    // KLAVYE YÖN OKLARIYLA MİLİMETRİK KALİBRASYON 
+    document.addEventListener('keydown', (e) => {
+        if (!activeElement) return; 
+        if (e.target.tagName === 'INPUT') return; // Rakam girerken ok tuşları formu bozmasın
+
+        const step = e.shiftKey ? 10 : 1; 
+
+        let currentLeft = activeElement.offsetLeft; 
+        let currentTop = activeElement.offsetTop;
+
+        if (e.key === 'ArrowUp') { currentTop -= step; e.preventDefault(); }
+        else if (e.key === 'ArrowDown') { currentTop += step; e.preventDefault(); }
+        else if (e.key === 'ArrowLeft') { currentLeft -= step; e.preventDefault(); }
+        else if (e.key === 'ArrowRight') { currentLeft += step; e.preventDefault(); }
+        else return; 
+
+        activeElement.style.left = currentLeft + 'px';
+        activeElement.style.top = currentTop + 'px';
+
+        kaydetKonumVeTasarim(activeElement);
     });
 
+    // Fareden el çekilince konumu hafızaya al
+    document.addEventListener('mouseup', () => {
+        if (activeElement) kaydetKonumVeTasarim(activeElement);
+    });
+
+    // ==========================================
+    // CANLI VERİ SENKRONİZASYONU
+    // ==========================================
     const inpSenetNo = document.getElementById('senetNo');
     const inpTutar = document.getElementById('tutar');
     const inpVade = document.getElementById('vadeTarihi');
@@ -489,20 +594,26 @@
 
     document.getElementById('btnSenetBas').addEventListener('click', () => {
         tempVeri = {
-            ortakId: ortakSelect.value, // Gerçek Ortak ID'sini bağladık
+            ortakId: ortakSelect.value, 
             senetNo: inpSenetNo.value, tutar: inpTutar.value, vade: inpVade.value,
             taksitSayisi: parseInt(document.getElementById('taksitSayisi').value) || 1,
             unvan: document.getElementById('prev_unvan').innerText,
-            calibX: parseFloat(document.getElementById('calibX').value) || 0,
-            calibY: parseFloat(document.getElementById('calibY').value) || 0
+            printerName: printerSelect.value 
         };
 
         if (!tempVeri.ortakId) { alert("Lütfen bir Cari / Ortak seçin."); return; }
         if (!tempVeri.tutar || !tempVeri.vade) { alert("Lütfen tutar ve vade tarihi alanlarını doldurun."); return; }
+        if (!tempVeri.printerName) { alert("Lütfen yazdırmak için bir YAZICI seçin."); return; }
 
         tempKoordinatlar = {};
         draggables.forEach(elem => {
-            tempKoordinatlar[elem.id] = { x: (elem.offsetLeft / 800), y: (elem.offsetTop / 552), text: elem.innerText };
+            tempKoordinatlar[elem.id] = { 
+                x: (elem.offsetLeft / 800), 
+                y: (elem.offsetTop / 552), 
+                text: elem.innerText,
+                fontSize: parseInt(elem.style.fontSize) || 11,
+                isBold: elem.style.fontWeight === 'bold'
+            };
         });
 
         document.getElementById('modalTaksitOzet').innerText = `Toplam: ${tempVeri.taksitSayisi} Adet Senet`;
@@ -529,6 +640,11 @@
                 if (id === 'prev_vade') finalYazi = kisaTarih;
                 if (id === 'prev_vade_yazi') finalYazi = uzunTarih;
                 if (id === 'prev_senetno') finalYazi = guncelSenetNo;
+                
+                // Kalınlık ve boyut önizlemede de görünsün
+                textEl.style.fontSize = data.fontSize + 'px';
+                if (data.isBold) textEl.style.fontWeight = 'bold';
+                
                 textEl.innerText = finalYazi; box.appendChild(textEl);
             }
             previewsContainer.appendChild(box);
@@ -542,11 +658,16 @@
     document.getElementById('btnOnayla').addEventListener('click', async () => {
         modal.style.display = 'none'; 
         try {
+            const btn = document.getElementById('btnOnayla');
+            btn.innerText = "Yazdırılıyor..."; btn.disabled = true;
+
             const sonuc = await window.api.senetBas(tempVeri, tempKoordinatlar);
             if (sonuc.success) {
                 aktifSenetGecmisId = sonuc.senetGecmisId; 
-                alert("İşlem Başarılı! Senet bilgileri sisteme kaydedildi. Şimdi 'Teslim Fişi' butonuna basabilirsiniz.");
+                alert("İşlem Başarılı! Senetler yazıcıya gönderildi. Şimdi 'Teslim Fişi Üret' butonuna basabilirsiniz.");
             } else { alert("Hata oluştu: " + sonuc.error); }
+
+            btn.innerText = "Kusursuz, Kaydet ve YAZDIR!"; btn.disabled = false;
         } catch (err) { console.error("Yazdırma hatası:", err); }
     });
 
@@ -562,6 +683,8 @@
 
     document.getElementById('btnTeslimFisi').addEventListener('click', () => {
         if (!aktifSenetGecmisId) { alert("Önce 'Senet Bas' işlemini yapmalısınız."); return; }
+        if (!printerSelect.value) { alert("Lütfen yazdırmak için bir YAZICI seçin."); return; }
+
         if (inpVade.value) { inpTeslimDuzenleme.value = inpVade.value; } else { inpTeslimDuzenleme.valueAsDate = new Date(); }
 
         const duzTarih = inpTeslimDuzenleme.value.split('-').reverse().join('.');
@@ -578,7 +701,6 @@
 
         teslimTableBody.innerHTML = '';
         
-        // YENİ: SABİT 15 SATIR DÖNGÜSÜ (Önizleme Alanında)
         for (let i = 0; i < 15; i++) {
             const tr = document.createElement('tr');
             if (i < taksitSy) {
@@ -592,7 +714,6 @@
                     <td>${formatliSenetTutari}</td>
                 `;
             } else {
-                // Kalan satırlar şablon olarak boş basılır
                 tr.innerHTML = `<td>${i+1}</td><td></td><td></td><td></td><td></td>`;
             }
             teslimTableBody.appendChild(tr);
@@ -607,7 +728,7 @@
         const fisVerisi = {
             senetGecmisId: aktifSenetGecmisId, unvan: document.getElementById('prev_unvan').innerText,
             tutar: inpTutar.value, vade: inpVade.value, taksitSayisi: parseInt(document.getElementById('taksitSayisi').value) || 1,
-            duzenlemeTarihi: inpTeslimDuzenleme.value
+            duzenlemeTarihi: inpTeslimDuzenleme.value, printerName: printerSelect.value
         };
 
         try {
@@ -679,7 +800,7 @@
     });
 
     window.gecmistenYazdir = async (islemId) => {
-        alert("PDF'ler oluşturuluyor, lütfen bekleyin...");
+        alert("Geçmiş işlem yazıcıya gönderiliyor, lütfen bekleyin...");
         const sonuc = await window.api.gecmistenYazdir(islemId);
         if(!sonuc.success) alert("Hata: " + sonuc.error);
     };
