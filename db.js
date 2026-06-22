@@ -1,7 +1,19 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const fs = require('fs');
+const { app } = require('electron');
 
-const dbPath = path.join(__dirname, 'database.sqlite');
+// --- VERİTABANINI APPDATA (ROAMING) KLASÖRÜNE TAŞIMA ZEKASI ---
+// Program kuruldğunda kilitlenmeyen, fuar günü şak diye silinebilen güvenli yol
+const userDataPath = app.getPath('userData'); 
+
+// Eğer Windows AppData içinde GozKoopSenet klasörü fiziksel olarak yoksa önce onu zorla oluşturuyoruz
+if (!fs.existsSync(userDataPath)) {
+    fs.mkdirSync(userDataPath, { recursive: true });
+}
+
+// Artık veritabanı dosyamız güvenli ve yazılabilir bu klasörün içinde barınacak
+const dbPath = path.join(userDataPath, 'GozKoopSenet.db');
 const db = new sqlite3.Database(dbPath);
 
 db.serialize(() => {
@@ -14,6 +26,8 @@ db.serialize(() => {
         baslangic_vadesi TEXT,
         olusturma_tarihi DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
+    
+    // Sütunların daha önce eklenip eklenmediğini umursamadan güvenle genişletiyoruz
     db.run(`ALTER TABLE senet_gecmisi ADD COLUMN koordinatlar TEXT`, () => {});
     db.run(`ALTER TABLE senet_gecmisi ADD COLUMN senet_koku TEXT`, () => {});
     db.run(`ALTER TABLE senet_gecmisi ADD COLUMN tekil_tutar TEXT`, () => {});

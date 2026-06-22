@@ -1,6 +1,9 @@
 # Node modülleri (Bunu kesinlikle göndermiyoruz)
 node_modules/
 
+# --- YENİ: ELECTRON BUILDER PAKETLEME ÇÖPLÜĞÜ (Kesinlikle eklenmeli!) ---
+dist/
+
 # Test için üretilen PDF dosyaları
 *.pdf
 

@@ -1,17 +1,37 @@
 {
-  "name": "senetbasim",
+  "name": "gozkoop-senet-programi",
   "version": "1.0.0",
-  "description": "",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "dist": "electron-builder --windows"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "devDependencies": {
-    "electron": "^42.4.1"
+  "build": {
+    "appId": "com.gozkoop.senet",
+    "productName": "GozKoopSenet",
+    "win": {
+      "icon": "senetlogo.ico",
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "GözKoop Senet Programı"
+    },
+    "files": [
+      "**/*",
+      "logo.png",
+      "font.ttf",
+      "senet.jpg",
+      "komik.png",
+      "db.js"
+    ],
+    "asar": true
   },
   "dependencies": {
     "@pdf-lib/fontkit": "^1.1.1",
@@ -19,5 +39,9 @@
     "pdf-to-printer": "^5.8.0",
     "sqlite3": "^6.0.1",
     "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "electron": "^42.4.1",
+    "electron-builder": "^26.15.3"
   }
 }

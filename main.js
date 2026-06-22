@@ -82,8 +82,8 @@ async function teslimFisiSayfasiOlustur(pdfDoc, ozelFont, fisVerisi) {
 
     let logoImage = null;
     try { 
-        if (fs.existsSync(path.join(__dirname, 'logo.png'))) {
-            logoImage = await pdfDoc.embedPng(fs.readFileSync(path.join(__dirname, 'logo.png'))); 
+        if (fs.existsSync(path.join(app.getAppPath(), 'logo.png'))) {
+            logoImage = await pdfDoc.embedPng(fs.readFileSync(path.join(app.getAppPath(), 'logo.png'))); 
         } 
     } catch (e) {}
 
@@ -227,7 +227,8 @@ ipcMain.handle('senet-bas', async (event, veri, koordinatlar) => {
                 // YENİ: Performans Optimizasyonu -> PDF ve Fontları SADECE 1 KERE YÜKLE
                 const pdfDoc = await PDFDocument.create(); 
                 pdfDoc.registerFontkit(fontkit);
-                const ozelFont = await pdfDoc.embedFont(fs.readFileSync(path.join(__dirname, 'font.ttf')));
+                // app.getAppPath() kullanarak paketlenme sonrasında da dosyanın yerini şak diye bulmasını sağlıyoruz
+                const ozelFont = await pdfDoc.embedFont(fs.readFileSync(path.join(app.getAppPath(), 'font.ttf')));
 
                 for (let i = 0; i < veri.taksitSayisi; i++) {
                     // Her taksit için AYNı PDF DOSYASINA yeni bir sayfa ekliyoruz
@@ -393,5 +394,16 @@ ipcMain.handle('excel-disa-aktar', async (event, data, varsayilanIsim) => {
 
 // --- YAZICI SÜRÜCÜ AYARLARI ---
 ipcMain.handle('get-printers', async () => { return await BrowserWindow.getAllWindows()[0].webContents.getPrintersAsync(); });
-ipcMain.handle('save-print-settings', (event, settings) => { fs.writeFileSync(path.join(__dirname, 'print_settings.json'), JSON.stringify(settings)); return { success: true }; });
-ipcMain.handle('get-print-settings', () => { if (fs.existsSync(path.join(__dirname, 'print_settings.json'))) { return JSON.parse(fs.readFileSync(path.join(__dirname, 'print_settings.json'))); } return { printerName: '' }; });
+ipcMain.handle('save-print-settings', (event, settings) => { 
+    const settingsPath = path.join(app.getPath('userData'), 'print_settings.json');
+    fs.writeFileSync(settingsPath, JSON.stringify(settings)); 
+    return { success: true }; 
+});
+
+ipcMain.handle('get-print-settings', () => { 
+    const settingsPath = path.join(app.getPath('userData'), 'print_settings.json');
+    if (fs.existsSync(settingsPath)) { 
+        return JSON.parse(fs.readFileSync(settingsPath)); 
+    } 
+    return { printerName: '' }; 
+});
