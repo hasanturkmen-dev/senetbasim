@@ -24,12 +24,54 @@
         .history-table th { background-color: #f1f5f9; font-weight: 600; color: #475569; position: sticky; top: 0; }
         .history-table tr:hover { background-color: #f8fafc; }
 
-        /* YENİ: Milimetrik Kalibrasyon için Seçili Eleman Stili */
+        /* YENİ VE DÜZELTİLMİŞ: Yazılara kesin tıklanabilmesi için z-index artırıldı */
+        .draggable {
+            position: absolute;
+            cursor: grab;
+            z-index: 100; /* Bu sayede yazılar hep üstte kalacak, tıklama sorunu bitti */
+            padding: 2px 4px;
+            border: 1px dashed transparent;
+            user-select: none;
+        }
+        
         .active-element {
             outline: 2px dashed #38bdf8;
             background-color: rgba(56, 189, 248, 0.15);
-            z-index: 50;
+            z-index: 150 !important;
         }
+
+        /* --- MODERN BİLDİRİM (TOAST) KUTUSU STİLLERİ --- */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 99999999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none; /* Altındaki form alanlarına tıklanmayı engellemez */
+        }
+        .toast-box {
+            background: #0f172a;
+            color: white;
+            padding: 14px 22px;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            font-family: system-ui, sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 320px;
+            border-left: 5px solid #38bdf8;
+            transform: translateX(120%);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            pointer-events: auto;
+        }
+        .toast-box.show { transform: translateX(0); }
+        .toast-box.success { border-left-color: #10b981; }
+        .toast-box.error { border-left-color: #ef4444; }
     </style>
 </head>
 <body>
@@ -38,6 +80,7 @@
         <div class="brand">GÖZKOOP<br>SENET PROGRAMI</div>
         <div class="nav-item active" id="navSenetBas">Senet Basım Modülü</div>
         <div class="nav-item" id="navGecmis">Geçmiş İşlemler</div>
+        <div class="nav-item" id="navRapor">Senet Raporları</div>
     </div>
 
     <div class="main-content">
@@ -101,6 +144,10 @@
                     </div>
 
                     <div class="btn-group">
+                        <div class="form-group" style="background: #f8fafc; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="chkKutlama" style="cursor: pointer; width: 16px; height: 16px;">
+                        <label for="chkKutlama" style="margin: 0; cursor: pointer; color: #475569; font-weight: 600; font-size: 12px; line-height: 1;" title="Büyük hacimli işlemlerde donanımsal optimizasyon"> Başarı Animasyonu</label>
+                    </div>
                         <button type="button" class="btn btn-primary" id="btnSenetBas">Senet Bas & Yazdır</button>
                         <button type="button" class="btn btn-secondary" id="btnTeslimFisi">Teslim Fişi Üret</button>
                     </div>
@@ -135,13 +182,17 @@
                     <div class="draggable" id="prev_tc" style="top: 76.50%; left: 46.00%;">TC Kimlik No</div>
                 </div>
             </div>
-        </div>>
+        </div>
 
-        <div class="page" id="sayfaGecmis" style="flex-direction: column; padding: 30px;">
+        <div class="page" id="sayfaGecmis" style="flex-direction: column; padding: 30px; background-color: #f8fafc;">
             <div class="history-header">
-                <h2 style="margin: 0; color: #0f172a;">Geçmiş İşlemler ve Cari Tablosu</h2>
-                <input type="text" class="search-box" id="aramaKutusu" placeholder="Cari Ünvan veya Tarih Ara...">
+                <h2 style="margin: 0; color: #0f172a;">Geçmiş İşlemler Tablosu</h2>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" class="search-box" id="aramaKutusu" placeholder="Cari Ünvan veya Tarih Ara...">
+                    <button class="btn btn-primary" id="btnGecmisExcel" style="padding: 10px 15px; background-color: #10b981;">📥 Excel İndir</button>
+                </div>
             </div>
+            
             <div class="table-container">
                 <table class="history-table">
                     <thead>
@@ -161,9 +212,33 @@
                 </table>
             </div>
         </div>
-    </div>
 
-    <div class="modal-overlay" id="onayModal">
+        <div class="page" id="sayfaRapor" style="flex-direction: column; padding: 30px; background-color: #f8fafc;">
+            <div class="history-header">
+                <h2 style="margin: 0; color: #0f172a;">📊 Cari Bazlı Senet Özeti</h2>
+                <button class="btn btn-primary" id="btnRaporExcel" style="padding: 10px 15px; background-color: #10b981; flex: none; width: auto; height: 40px; display: flex; align-items: center; justify-content: center;">📥 Excel İndir</button>
+            </div>
+            <div class="table-container" style="flex: 0 1 auto; max-height: 70vh;">
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th>Cari / Ortak Ünvanı</th>
+                            <th>Toplam Senet Adedi</th>
+                            <th>Toplam Hacim (TL)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="raporTabloGövdesi">
+                        <tr><td colspan="3" style="text-align:center; padding: 20px;">Hesaplanıyor...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div style="margin-top: 20px; text-align: right; background: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
+                <span style="font-size: 16px; color: #64748b; font-weight: 600;">Genel Toplam Hacim: </span>
+                <span id="genelToplamHacim" style="font-size: 22px; font-weight: bold; color: #10b981;">0,00 ₺</span>
+            </div>
+        </div>
+
+    </div> <div class="modal-overlay" id="onayModal">
         <div class="modal-content">
             <div class="modal-header">
                 <span>Baskı Öncesi Görsel Kontrol</span>
@@ -181,22 +256,23 @@
         <div class="modal-content">
             <div class="modal-header">
                 Teslim Fişi Önizleme 
-                <input type="date" id="teslimDuzenlemeTarihi" style="font-size:12px; padding:2px;">
+                <input type="date" id="teslimDuzenlemeTarihi" style="font-size:12px; padding:4px; border-radius: 4px; border: 1px solid #cbd5e1;">
             </div>
             <div class="modal-body" style="padding: 10px;">
                 <div class="a4-preview">
                     <div class="a4-header-preview">
-                        <img src="logo.png" class="a4-logo-preview" alt="Logo">
-                        <div class="a4-info-text">
-                            <strong>S.S. Tüm Optisyenler ve Gözlükçüler<br>Temin Tevzi Kooperatifi</strong><br>
-                            Fevzipaşa Mahallesi 847 Sokak No: 4/A Konak - İZMİR<br>
-                            Tel: 0232 489 89 62 - Fax: 0232 489 39 62<br>
-                            Mersis No: 0875 0359 0980 00 15<br>
-                            Ticaret Sicil No: 155588 - Kemeraltı V.D.
+                        <div style="display:flex; align-items:center;">
+                            <img src="logo.png" class="a4-logo-preview" alt="Logo">
+                            <div class="a4-info-text">
+                                <strong>S.S. TÜM OPTİSYENLER VE GÖZLÜKÇÜLER KOOPERATİFİ</strong><br>
+                                Fevzipaşa Mahallesi 847 Sokak No: 4/A Konak - İZMİR<br>
+                                Tel: 0232 489 89 62 &nbsp;|&nbsp; Fax: 0232 489 39 62<br>
+                                Mersis No: 0875 0359 0980 00 15 &nbsp;|&nbsp; Tic. Sicil: 155588 &nbsp;|&nbsp; Kemeraltı V.D. 8750359098
+                            </div>
                         </div>
-                        <div>
+                        <div style="text-align: right; display:flex; flex-direction:column; justify-content:center; align-items:flex-end;">
                             <div class="a4-title-box">SENET ALINDI BELGESİ</div>
-                            <div style="text-align:right; font-size:11px; margin-top:5px;">Tarih: <span id="prev_duzenleme">...</span></div>
+                            <div style="font-size:11px; color:#64748b; margin-top:5px;">Düzenleme Tarihi: <strong id="prev_duzenleme" style="color:#0f172a;">...</strong></div>
                         </div>
                     </div>
                     <table class="a4-table-preview">
@@ -212,9 +288,12 @@
                         <tbody id="teslimTableBody"></tbody>
                     </table>
                     <div class="a4-footer-preview">
-                        <div>KAŞE - İMZA</div>
+                        <div class="signature-area">
+                            <div class="signature-box"><strong>TESLİM EDEN</strong>KAŞE - İMZA</div>
+                            <div class="signature-box"><strong>TESLİM ALAN</strong>KAŞE - İMZA</div>
+                        </div>
                         <div class="a4-total-box">
-                            <div>Toplam Tutar</div>
+                            <div>GENEL TOPLAM</div>
                             <div id="prev_toplamTutar">0,00 TL</div>
                         </div>
                     </div>
@@ -271,21 +350,82 @@
     </div>
 
     <script>
+    // --- GLOBAL DEĞİŞKENLER VE DURUM YÖNETİMİ ---
+    let globalGecmisVerisi = [];
+    let globalRaporVerisi = [];
+    let islemModu = 'YENI'; // 'YENI', 'GECMIS_SENET', 'GECMIS_FIS'
+    let aktifSenetGecmisId = null; 
+    let tempVeri = {}; 
+    let tempKoordinatlar = {};
+    let tumOrtaklar = []; 
+    let activeElement = null; let offsetX = 0; let offsetY = 0;
+
+    // --- YENİ: AKILLI HTML BİLDİRİM MOTORU (Odağı Asla Kilitlemez) ---
+    function bildirimGoster(mesaj, tip = 'success') {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = `toast-box ${tip}`;
+        
+        const ikon = tip === 'success' ? '✅' : '❌';
+        toast.innerHTML = `<div>${ikon}</div> <div>${mesaj}</div>`;
+        
+        container.appendChild(toast);
+        setTimeout(() => toast.classList.add('show'), 50);
+
+        // 4 saniye ekranda kalıp otomatik pürüzsüzce silinir
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, 4000);
+    }
+
+    // --- DOM ELEMENTLERİ ---
     const navSenetBas = document.getElementById('navSenetBas');
     const navGecmis = document.getElementById('navGecmis');
+    const navRapor = document.getElementById('navRapor'); 
     const sayfaSenetBas = document.getElementById('sayfaSenetBas');
     const sayfaGecmis = document.getElementById('sayfaGecmis');
+    const sayfaRapor = document.getElementById('sayfaRapor'); 
     const gecmisTabloGövdesi = document.getElementById('gecmisTabloGövdesi');
+    const raporTabloGövdesi = document.getElementById('raporTabloGövdesi');
+    const genelToplamHacim = document.getElementById('genelToplamHacim');
     const printerSelect = document.getElementById('printerSelect');
+    const draggables = document.querySelectorAll('.draggable');
+    const canvas = document.getElementById('senetCanvas');
+    const ortakSelect = document.getElementById('ortakSelect');
+    const tasarimPaneli = document.getElementById('tasarimPaneli');
+    const seciliOgeAdi = document.getElementById('seciliOgeAdi');
+    const ogeBoyutInp = document.getElementById('ogeBoyut');
+    const btnKalinYap = document.getElementById('btnKalınYap');
+    const modal = document.getElementById('onayModal');
+    const previewsContainer = document.getElementById('visualPreviewsContainer');
+    const teslimModal = document.getElementById('teslimModal');
+    const inpTeslimDuzenleme = document.getElementById('teslimDuzenlemeTarihi');
+    const teslimTableBody = document.getElementById('teslimTableBody');
+
+    const inpSenetNo = document.getElementById('senetNo');
+    const inpTutar = document.getElementById('tutar');
+    const inpVade = document.getElementById('vadeTarihi');
+    const prevSenetNo = document.getElementById('prev_senetno');
+    const prevTutar = document.getElementById('prev_tutar');
+    const prevTutarYazi = document.getElementById('prev_tutar_yazi');
+    const prevVade = document.getElementById('prev_vade');
+    const prevVadeYazi = document.getElementById('prev_vade_yazi');
+
+    // --- SEKME DEĞİŞTİRME MOTORU ---
+    function sekmeleriSifirla() {
+        navSenetBas.classList.remove('active'); navGecmis.classList.remove('active'); navRapor.classList.remove('active');
+        sayfaSenetBas.classList.remove('active'); sayfaGecmis.classList.remove('active'); sayfaRapor.classList.remove('active');
+    }
 
     navSenetBas.addEventListener('click', () => {
-        navSenetBas.classList.add('active'); navGecmis.classList.remove('active');
-        sayfaSenetBas.classList.add('active'); sayfaGecmis.classList.remove('active');
+        sekmeleriSifirla();
+        navSenetBas.classList.add('active'); sayfaSenetBas.classList.add('active');
     });
 
     navGecmis.addEventListener('click', async () => {
-        navGecmis.classList.add('active'); navSenetBas.classList.remove('active');
-        sayfaSenetBas.classList.remove('active'); sayfaGecmis.classList.add('active');
+        sekmeleriSifirla();
+        navGecmis.classList.add('active'); sayfaGecmis.classList.add('active');
         gecmisTabloGövdesi.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 20px;">Veriler yükleniyor...</td></tr>';
         
         try {
@@ -293,17 +433,28 @@
             if (sonuc.success) {
                 gecmisTabloGövdesi.innerHTML = '';
                 if (sonuc.data.length === 0) return gecmisTabloGövdesi.innerHTML = '<tr><td colspan="7" style="text-align:center;">İşlem bulunmuyor.</td></tr>';
+                
+                globalGecmisVerisi = sonuc.data.map(k => ({
+                    'İşlem ID': k.islem_id,
+                    'Cari Ünvanı': k.ticari_unvan || 'Bilinmeyen Cari',
+                    'Toplam Tutar (TL)': k.toplam_tutar,
+                    'Taksit Sayısı': k.taksit_sayisi,
+                    'Vade Başlangıcı': k.baslangic_vadesi.split('-').reverse().join('.'),
+                    'Teslim Fişi Durumu': k.teslim_fisi_id ? 'Kesildi' : 'Bekliyor'
+                }));
 
                 sonuc.data.forEach(kayit => {
                     const vTarih = kayit.baslangic_vadesi.split('-').reverse().join('.');
                     const formatliTutar = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2 }).format(kayit.toplam_tutar);
                     const teslimDurumu = kayit.teslim_fisi_id ? `<span style="color: #10b981; font-weight: bold;">✔ Kesildi</span>` : `<span style="color: #ef4444;">✖ Bekliyor</span>`;
+                    
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td>#${kayit.islem_id}</td><td><strong>${kayit.ticari_unvan || 'Bilinmeyen Cari'}</strong></td>
                         <td>${formatliTutar} ₺</td><td>${kayit.taksit_sayisi} Ay</td><td>${vTarih}</td><td>${teslimDurumu}</td>
                         <td style="display: flex; gap: 5px;">
-                            <button class="btn-sm" style="background-color: #10b981; color: white; border: none; cursor: pointer;" onclick="gecmistenYazdir(${kayit.islem_id})">PDF Üret & Yazdır</button>
+                            <button class="btn-sm" style="background-color: #10b981; color: white; border: none; cursor: pointer;" onclick="gecmistenYazdir(${kayit.islem_id})" title="Senetleri Yazdır">🖨 Senet</button>
+                            <button class="btn-sm" style="background-color: #3b82f6; color: white; border: none; cursor: pointer;" onclick="gecmistenTeslimFisiCikar(${kayit.islem_id})" title="Teslim Fişi Yazdır">📄 Fiş</button>
                         </td>
                     `;
                     gecmisTabloGövdesi.appendChild(tr);
@@ -312,18 +463,55 @@
         } catch (err) { console.error(err); }
     });
 
-    document.getElementById('vadeTarihi').valueAsDate = new Date();
-    const draggables = document.querySelectorAll('.draggable');
-    const canvas = document.getElementById('senetCanvas');
-    const ortakSelect = document.getElementById('ortakSelect');
-    let tumOrtaklar = []; 
+    navRapor.addEventListener('click', async () => {
+        sekmeleriSifirla();
+        navRapor.classList.add('active'); sayfaRapor.classList.add('active');
+        raporTabloGövdesi.innerHTML = '<tr><td colspan="3" style="text-align:center; padding: 20px;">Hesaplanıyor...</td></tr>';
+        globalRaporVerisi = []; 
+        
+        try {
+            const sonuc = await window.api.gecmisGetir();
+            if (sonuc.success) {
+                if (sonuc.data.length === 0) {
+                    raporTabloGövdesi.innerHTML = '<tr><td colspan="3" style="text-align:center;">İşlem bulunmuyor.</td></tr>';
+                    genelToplamHacim.innerText = "0,00 ₺";
+                    return;
+                }
 
-    // TASARIM PANELİ DEĞİŞKENLERİ
-    const tasarimPaneli = document.getElementById('tasarimPaneli');
-    const seciliOgeAdi = document.getElementById('seciliOgeAdi');
-    const ogeBoyutInp = document.getElementById('ogeBoyut');
-    const btnKalinYap = document.getElementById('btnKalınYap');
+                const raporlar = {};
+                let genelToplam = 0;
+                
+                sonuc.data.forEach(kayit => {
+                    const unvan = kayit.ticari_unvan || 'Bilinmeyen Cari';
+                    if (!raporlar[unvan]) raporlar[unvan] = { toplamTutar: 0, taksitSayisi: 0 };
+                    raporlar[unvan].toplamTutar += kayit.toplam_tutar;
+                    raporlar[unvan].taksitSayisi += kayit.taksit_sayisi;
+                    genelToplam += kayit.toplam_tutar;
+                });
 
+                let raporHTML = '';
+                for (const [unvan, data] of Object.entries(raporlar)) {
+                    globalRaporVerisi.push({
+                        'Cari / Ortak Ünvanı': unvan,
+                        'Toplam Senet Adedi': data.taksitSayisi,
+                        'Toplam Hacim (TL)': data.toplamTutar
+                    });
+                    const formatli = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2 }).format(data.toplamTutar);
+                    raporHTML += `
+                        <tr>
+                            <td><strong style="color:#0f172a;">${unvan}</strong></td>
+                            <td>${data.taksitSayisi} Adet Senet</td>
+                            <td style="color: #10b981; font-weight: bold;">${formatli} ₺</td>
+                        </tr>
+                    `;
+                }
+                raporTabloGövdesi.innerHTML = raporHTML;
+                genelToplamHacim.innerText = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2 }).format(genelToplam) + ' ₺';
+            }
+        } catch (err) { console.error(err); }
+    });
+
+    // --- DATA LOAD VE INITIALIZATION ---
     async function listeyiGuncelle() {
         try {
             const sonuc = await window.api.ortaklariGetir();
@@ -340,7 +528,7 @@
     }
 
     window.addEventListener('DOMContentLoaded', async () => {
-        // --- 1. YAZICI LİSTESİNİ VE HAFIZAYI ÇEK ---
+        document.getElementById('vadeTarihi').valueAsDate = new Date();
         try {
             const printers = await window.api.getPrinters();
             printerSelect.innerHTML = '<option value="">Lütfen Yazıcı Seçin</option>';
@@ -353,7 +541,6 @@
             if(settings && settings.printerName) printerSelect.value = settings.printerName;
         } catch(e) { console.error("Yazıcılar yüklenemedi", e); }
 
-        // --- 2. KOORDİNATLARI VE TASARIMLARI ÇEK ---
         draggables.forEach(elem => {
             const savedPos = localStorage.getItem('pos_' + elem.id);
             if (savedPos) {
@@ -361,18 +548,22 @@
                 if (pos.left) elem.style.left = pos.left; 
                 if (pos.top) elem.style.top = pos.top;
                 
-                // Tasarımları uygula
                 let loadSize = pos.fontSize || 11;
                 elem.style.fontSize = loadSize + 'px';
                 if (pos.isBold) elem.style.fontWeight = 'bold';
             } else {
-                elem.style.fontSize = '11px'; // Varsayılan boyut
+                elem.style.fontSize = '11px';
             }
         });
         listeyiGuncelle();
+        // Kutlama şalteri hafıza kontrolü
+        const savedKutlama = localStorage.getItem('kutlama_efekti');
+        if (savedKutlama === 'true') document.getElementById('chkKutlama').checked = true;
+        document.getElementById('chkKutlama').addEventListener('change', (e) => {
+            localStorage.setItem('kutlama_efekti', e.target.checked);
+        });
     });
 
-    // Yazıcı değiştiğinde hafızaya kaydet
     printerSelect.addEventListener('change', () => {
         window.api.savePrintSettings({ printerName: printerSelect.value });
     });
@@ -386,26 +577,18 @@
             document.getElementById('prev_adres').innerText = secilenOrtak.adresi || '';
             document.getElementById('prev_il').innerText = secilenOrtak.ili || '';
             document.getElementById('prev_vd').innerText = secilenOrtak.vergi_dairesi || '';
-            
-            // YENİ: VKN VE TC'Yİ KENDİ SATIRLARINA DAĞIT
             document.getElementById('prev_vkn').innerText = secilenOrtak.vergi_no || '';
             document.getElementById('prev_tc').innerText = secilenOrtak.tc_kimlik || '';
         }
     });
 
-    // ==========================================
-    // SÜRÜKLE BIRAK, MİLİMETRİK KALİBRASYON VE TASARIM ZEKASI
-    // ==========================================
-    let activeElement = null; let offsetX = 0; let offsetY = 0;
-
-    // Farenin tuşa basılması (Seçim, Sürükleme Başlangıcı ve Panel Açılışı)
+    // --- SÜRÜKLE BIRAK VE KLAVYE MİLİMETRİK MODÜLÜ ---
     draggables.forEach(elem => {
         elem.addEventListener('mousedown', (e) => {
             draggables.forEach(el => el.classList.remove('active-element'));
             activeElement = elem;
             elem.classList.add('active-element');
             
-            // Tasarım panelini aktifleştir ve değerleri oku
             tasarimPaneli.style.display = 'block';
             seciliOgeAdi.innerText = "Seçili: " + (elem.id.replace('prev_', '').toUpperCase());
             
@@ -422,7 +605,6 @@
         });
     });
 
-    // Tuval dışına tıklanırsa seçimi kaldır ve paneli gizle
     document.addEventListener('mousedown', (e) => {
         if (!e.target.classList.contains('draggable') && !tasarimPaneli.contains(e.target) && activeElement) {
             activeElement.classList.remove('active-element');
@@ -431,7 +613,6 @@
         }
     });
 
-    // TASARIM PANELİ DEĞİŞİKLİK DİNLEYİCİLERİ
     ogeBoyutInp.addEventListener('input', (e) => {
         if (!activeElement) return;
         activeElement.style.fontSize = e.target.value + 'px';
@@ -448,7 +629,6 @@
         kaydetKonumVeTasarim(activeElement);
     });
 
-    // Ortak Kaydetme Fonksiyonu
     function kaydetKonumVeTasarim(elem) {
         const pos = { 
             left: elem.style.left, 
@@ -459,7 +639,6 @@
         localStorage.setItem('pos_' + elem.id, JSON.stringify(pos));
     }
 
-    // Fareyle sürükleme
     document.addEventListener('mousemove', (e) => {
         if (!activeElement || e.buttons !== 1) return;
         const canvasRect = canvas.getBoundingClientRect();
@@ -475,13 +654,12 @@
         activeElement.style.top = newTop + 'px';
     });
 
-    // KLAVYE YÖN OKLARIYLA MİLİMETRİK KALİBRASYON 
     document.addEventListener('keydown', (e) => {
         if (!activeElement) return; 
-        if (e.target.tagName === 'INPUT') return; // Rakam girerken ok tuşları formu bozmasın
+        // INPUT, SELECT veya TEXTAREA içindeyken yön okları tuvali kaydırmasın, formu kilitlemesin
+        if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return; 
 
         const step = e.shiftKey ? 10 : 1; 
-
         let currentLeft = activeElement.offsetLeft; 
         let currentTop = activeElement.offsetTop;
 
@@ -493,27 +671,14 @@
 
         activeElement.style.left = currentLeft + 'px';
         activeElement.style.top = currentTop + 'px';
-
         kaydetKonumVeTasarim(activeElement);
     });
 
-    // Fareden el çekilince konumu hafızaya al
     document.addEventListener('mouseup', () => {
         if (activeElement) kaydetKonumVeTasarim(activeElement);
     });
 
-    // ==========================================
-    // CANLI VERİ SENKRONİZASYONU
-    // ==========================================
-    const inpSenetNo = document.getElementById('senetNo');
-    const inpTutar = document.getElementById('tutar');
-    const inpVade = document.getElementById('vadeTarihi');
-    const prevSenetNo = document.getElementById('prev_senetno');
-    const prevTutar = document.getElementById('prev_tutar');
-    const prevTutarYazi = document.getElementById('prev_tutar_yazi');
-    const prevVade = document.getElementById('prev_vade');
-    const prevVadeYazi = document.getElementById('prev_vade_yazi');
-
+    // --- CANLI VERİ SENKRONİZASYON MOTORU ---
     inpSenetNo.addEventListener('input', (e) => { prevSenetNo.innerText = e.target.value || 'NO'; });
 
     inpTutar.addEventListener('input', function(e) {
@@ -576,10 +741,6 @@
         return "# " + yaziTL + yaziKurus + " #";
     }
 
-    const modal = document.getElementById('onayModal');
-    const previewsContainer = document.getElementById('visualPreviewsContainer');
-    let tempVeri = {}; let tempKoordinatlar = {};
-
     function frontendAyEkle(baslangicTarihi, eklenecekAy) {
         const basTarih = new Date(baslangicTarihi);
         const basGun = basTarih.getDate(); const basAy = basTarih.getMonth(); const basYil = basTarih.getFullYear();
@@ -592,7 +753,10 @@
         return new Date(yeniYil, yeniAy, sonGun);
     }
 
+    // --- SIFIRDAN YENİ SENET KESME ÖNİZLEMESİ ---
     document.getElementById('btnSenetBas').addEventListener('click', () => {
+        mevcutToplamHacim = (parseFloat(inpTutar.value.replace(/\./g, '').replace(',', '.')) || 0) * (parseInt(document.getElementById('taksitSayisi').value) || 1);
+        islemModu = 'YENI';
         tempVeri = {
             ortakId: ortakSelect.value, 
             senetNo: inpSenetNo.value, tutar: inpTutar.value, vade: inpVade.value,
@@ -641,7 +805,6 @@
                 if (id === 'prev_vade_yazi') finalYazi = uzunTarih;
                 if (id === 'prev_senetno') finalYazi = guncelSenetNo;
                 
-                // Kalınlık ve boyut önizlemede de görünsün
                 textEl.style.fontSize = data.fontSize + 'px';
                 if (data.isBold) textEl.style.fontWeight = 'bold';
                 
@@ -654,34 +817,9 @@
 
     document.getElementById('btnIptal').addEventListener('click', () => modal.style.display = 'none');
 
-    let aktifSenetGecmisId = null; 
-    document.getElementById('btnOnayla').addEventListener('click', async () => {
-        modal.style.display = 'none'; 
-        try {
-            const btn = document.getElementById('btnOnayla');
-            btn.innerText = "Yazdırılıyor..."; btn.disabled = true;
-
-            const sonuc = await window.api.senetBas(tempVeri, tempKoordinatlar);
-            if (sonuc.success) {
-                aktifSenetGecmisId = sonuc.senetGecmisId; 
-                alert("İşlem Başarılı! Senetler yazıcıya gönderildi. Şimdi 'Teslim Fişi Üret' butonuna basabilirsiniz.");
-            } else { alert("Hata oluştu: " + sonuc.error); }
-
-            btn.innerText = "Kusursuz, Kaydet ve YAZDIR!"; btn.disabled = false;
-        } catch (err) { console.error("Yazdırma hatası:", err); }
-    });
-
-    const teslimModal = document.getElementById('teslimModal');
-    const inpTeslimDuzenleme = document.getElementById('teslimDuzenlemeTarihi');
-    const teslimTableBody = document.getElementById('teslimTableBody');
-
-    inpTeslimDuzenleme.addEventListener('change', (e) => {
-        const yeniTarih = e.target.value.split('-').reverse().join('.');
-        document.getElementById('prev_duzenleme').innerText = yeniTarih;
-        document.querySelectorAll('.prev-duzenleme-cell').forEach(td => { td.innerText = yeniTarih; });
-    });
-
+    // --- SIFIRDAN YENİ TESLİM FİŞİ ÖNİZLEMESİ ---
     document.getElementById('btnTeslimFisi').addEventListener('click', () => {
+        islemModu = 'YENI';
         if (!aktifSenetGecmisId) { alert("Önce 'Senet Bas' işlemini yapmalısınız."); return; }
         if (!printerSelect.value) { alert("Lütfen yazdırmak için bir YAZICI seçin."); return; }
 
@@ -723,19 +861,177 @@
 
     document.getElementById('btnTeslimIptal').addEventListener('click', () => teslimModal.style.display = 'none');
 
+    // --- 1. GEÇMİŞ SENEDİ ÖNİZLEMEYE ÇAĞIRMA MOTORU ---
+    window.gecmistenYazdir = async (islemId) => {
+        mevcutToplamHacim = (parseFloat(String(detay.tekil_tutar).replace(/\./g, '').replace(',', '.')) || 0) * detay.taksit_sayisi;
+        const yN = printerSelect.value;
+        if(!yN) return alert("Lütfen yazdırmadan önce sol üstten bir YAZICI seçin.");
+
+        const sonuc = await window.api.islemDetayGetir(islemId);
+        if(!sonuc.success) return alert("Detaylar alınamadı: " + sonuc.error);
+
+        const detay = sonuc.data;
+        aktifSenetGecmisId = islemId;
+        islemModu = 'GECMIS_SENET'; 
+
+        document.getElementById('modalTaksitOzet').innerText = `Geçmiş Baskı: Toplam ${detay.taksit_sayisi} Adet Senet`;
+        previewsContainer.innerHTML = ''; 
+
+        const koordinatlar = JSON.parse(detay.koordinatlar);
+        const aylar = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
+        
+        let senetKok = detay.senet_koku; let baslangicNo = 1;
+        const match = senetKok.match(/^(.*?)(\d+)$/);
+        if (match) { senetKok = match[1]; baslangicNo = parseInt(match[2]); } else if (senetKok.trim() !== '' && !senetKok.endsWith('-')) { senetKok += "-"; }
+
+        for (let i = 0; i < detay.taksit_sayisi; i++) {
+            const taksitTarihi = frontendAyEkle(detay.baslangic_vadesi, i);
+            const kisaTarih = `${String(taksitTarihi.getDate()).padStart(2, '0')}.${String(taksitTarihi.getMonth() + 1).padStart(2, '0')}.${taksitTarihi.getFullYear()}`;
+            const uzunTarih = `${taksitTarihi.getDate()} ${aylar[taksitTarihi.getMonth()]} ${taksitTarihi.getFullYear()}`;
+            const guncelSenetNo = (detay.senet_koku.trim() === '') ? '' : (senetKok + (baslangicNo + i));
+
+            const box = document.createElement('div'); box.className = 'preview-senet-box';
+
+            for (const [id, data] of Object.entries(koordinatlar)) {
+                const textEl = document.createElement('div'); textEl.className = 'preview-text';
+                textEl.style.left = (data.x * 100) + '%'; textEl.style.top = (data.y * 100) + '%';
+                let finalYazi = data.text;
+                if (id === 'prev_vade') finalYazi = kisaTarih;
+                if (id === 'prev_vade_yazi') finalYazi = uzunTarih;
+                if (id === 'prev_senetno') finalYazi = guncelSenetNo;
+                if (id === 'prev_tutar') finalYazi = `# ${detay.tekil_tutar} #`;
+                if (id === 'prev_tutar_yazi') finalYazi = sayiyiYaziyaCevir(detay.tekil_tutar);
+                
+                textEl.style.fontSize = data.fontSize + 'px';
+                if (data.isBold) textEl.style.fontWeight = 'bold';
+                textEl.innerText = finalYazi; box.appendChild(textEl);
+            }
+            previewsContainer.appendChild(box);
+        }
+        modal.style.display = 'flex'; 
+    };
+
+    // --- 2. GEÇMİŞ TESLİM FİŞİNİ ÖNİZLEMEYE ÇAĞIRMA MOTORU ---
+    window.gecmistenTeslimFisiCikar = async (islemId) => {
+        const yN = printerSelect.value;
+        if(!yN) return alert("Lütfen yazdırmadan önce sol üstten bir YAZICI seçin.");
+
+        const sonuc = await window.api.islemDetayGetir(islemId);
+        if(!sonuc.success) return alert("Detaylar alınamadı: " + sonuc.error);
+        
+        const detay = sonuc.data;
+        aktifSenetGecmisId = islemId;
+        islemModu = 'GECMIS_FIS'; 
+
+        const bugun = new Date();
+        const duzTarihStr = `${bugun.getFullYear()}-${String(bugun.getMonth() + 1).padStart(2, '0')}-${String(bugun.getDate()).padStart(2, '0')}`;
+        document.getElementById('teslimDuzenlemeTarihi').value = duzTarihStr;
+        const duzTarihFormat = duzTarihStr.split('-').reverse().join('.');
+        
+        document.getElementById('prev_duzenleme').innerText = duzTarihFormat;
+
+        const senetTutariFloat = parseFloat(detay.tekil_tutar.replace(/\./g, '').replace(',', '.'));
+        const formatliSenetTutari = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2 }).format(senetTutariFloat);
+        const formatliToplam = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2 }).format(senetTutariFloat * detay.taksit_sayisi);
+        document.getElementById('prev_toplamTutar').innerText = formatliToplam + " TL";
+
+        teslimTableBody.innerHTML = '';
+        for (let i = 0; i < 15; i++) {
+            const tr = document.createElement('tr');
+            if (i < detay.taksit_sayisi) {
+                const tTarih = frontendAyEkle(detay.baslangic_vadesi, i);
+                const formatliVade = `${String(tTarih.getDate()).padStart(2, '0')}.${String(tTarih.getMonth() + 1).padStart(2, '0')}.${tTarih.getFullYear()}`;
+                tr.innerHTML = `
+                    <td>${i+1}</td><td class="prev-duzenleme-cell">${duzTarihFormat}</td>
+                    <td style="text-align:left;">${detay.ticari_unvan || 'Bilinmeyen Cari'}</td>
+                    <td>${formatliVade}</td><td>${formatliSenetTutari}</td>
+                `;
+            } else { tr.innerHTML = `<td>${i+1}</td><td></td><td></td><td></td><td></td>`; }
+            teslimTableBody.appendChild(tr);
+        }
+        teslimModal.style.display = 'flex'; 
+    };
+
+    // --- 3. MODAL ONAY BUTONLARININ YENİ AKILLI ZEKASI ---
+    document.getElementById('btnOnayla').addEventListener('click', async () => {
+        modal.style.display = 'none'; 
+        document.body.focus(); // Yazdırma öncesi tarayıcı odağını tamamen sıfırla (Kitlenmeyi önler)
+        
+        try {
+            const btn = document.getElementById('btnOnayla');
+            btn.innerText = "Yazdırılıyor..."; btn.disabled = true;
+
+            let sonuc;
+            if (islemModu === 'YENI') {
+                sonuc = await window.api.senetBas(tempVeri, tempKoordinatlar);
+                if (sonuc.success) aktifSenetGecmisId = sonuc.senetGecmisId; 
+            } else if (islemModu === 'GECMIS_SENET') {
+                sonuc = await window.api.gecmistenYazdir(aktifSenetGecmisId, printerSelect.value);
+            }
+
+            // İşlem bitince seçili elemanları ve paneli temizle (Arayüzü rahatlatır)
+            draggables.forEach(el => el.classList.remove('active-element'));
+            activeElement = null;
+            tasarimPaneli.style.display = 'none';
+
+            if (sonuc.success) {
+                bildirimGoster("İşlem Başarılı! Senetler arka planda yazıcı havuzuna gönderildi.");
+                
+                // SÜRPRİZ YUMURTA TETİKLEYİCİ
+                if (document.getElementById('chkKutlama').checked && mevcutToplamHacim >= 100000) {
+                    const popup = document.getElementById('kutlamaPopup');
+                    const img = popup.querySelector('img');
+                    popup.style.display = 'flex';
+                    setTimeout(() => { popup.style.opacity = '1'; img.style.transform = 'scale(1)'; }, 50);
+                    setTimeout(() => {
+                        popup.style.opacity = '0'; img.style.transform = 'scale(0.5)';
+                        setTimeout(() => popup.style.display = 'none', 400);
+                    }, 3000);
+                }
+            } else {
+                bildirimGoster("Hata oluştu: " + sonuc.error, 'error');
+            } 
+
+            btn.innerText = "Kusursuz, Kaydet ve YAZDIR!"; btn.disabled = false;
+        } catch (err) { console.error(err); }
+    });
+
     document.getElementById('btnTeslimOnayla').addEventListener('click', async () => {
         teslimModal.style.display = 'none';
-        const fisVerisi = {
-            senetGecmisId: aktifSenetGecmisId, unvan: document.getElementById('prev_unvan').innerText,
-            tutar: inpTutar.value, vade: inpVade.value, taksitSayisi: parseInt(document.getElementById('taksitSayisi').value) || 1,
-            duzenlemeTarihi: inpTeslimDuzenleme.value, printerName: printerSelect.value
-        };
+        document.body.focus(); // Odak temizliği
+        
+        let fisVerisi = {};
+        if (islemModu === 'YENI') {
+            fisVerisi = {
+                veritabaninaKaydet: true, senetGecmisId: aktifSenetGecmisId, unvan: document.getElementById('prev_unvan').innerText,
+                tutar: inpTutar.value, vade: inpVade.value, taksitSayisi: parseInt(document.getElementById('taksitSayisi').value) || 1,
+                duzenlemeTarihi: document.getElementById('teslimDuzenlemeTarihi').value, printerName: printerSelect.value
+            };
+        } else if (islemModu === 'GECMIS_FIS') {
+            const detay = (await window.api.islemDetayGetir(aktifSenetGecmisId)).data;
+            fisVerisi = {
+                veritabaninaKaydet: false, 
+                senetGecmisId: aktifSenetGecmisId, unvan: detay.ticari_unvan || 'Bilinmeyen Cari',
+                tutar: detay.tekil_tutar, vade: detay.baslangic_vadesi, taksitSayisi: detay.taksit_sayisi,
+                duzenlemeTarihi: document.getElementById('teslimDuzenlemeTarihi').value, printerName: printerSelect.value
+            };
+        }
 
         try {
             const sonuc = await window.api.teslimFisiBas(fisVerisi);
-            if (sonuc.success) alert("Başarılı! Teslim Fişi yazıcıya gönderildi.");
-            else alert("Teslim fişi oluşturulurken hata: " + sonuc.error);
+            if (sonuc.success) {
+                bildirimGoster("Başarılı! Teslim Fişi arka planda yazıcıya gönderildi.");
+            } else {
+                bildirimGoster("Hata oluştu: " + sonuc.error, 'error');
+            }
         } catch (err) { console.error(err); }
+    });
+
+    // --- ORTAK MODAL VE EXCEL DIŞA AKTARMA YÖNETİMİ ---
+    inpTeslimDuzenleme.addEventListener('change', (e) => {
+        const yeniTarih = e.target.value.split('-').reverse().join('.');
+        document.getElementById('prev_duzenleme').innerText = yeniTarih;
+        document.querySelectorAll('.prev-duzenleme-cell').forEach(td => { td.innerText = yeniTarih; });
     });
 
     const excelModal = document.getElementById('excelModal');
@@ -799,11 +1095,43 @@
         } else { alert("Hata: " + sonuc.error); }
     });
 
-    window.gecmistenYazdir = async (islemId) => {
-        alert("Geçmiş işlem yazıcıya gönderiliyor, lütfen bekleyin...");
-        const sonuc = await window.api.gecmistenYazdir(islemId);
-        if(!sonuc.success) alert("Hata: " + sonuc.error);
-    };
+    document.getElementById('btnGecmisExcel').addEventListener('click', async () => {
+        if (globalGecmisVerisi.length === 0) return alert("Dışa aktarılacak işlem bulunamadı!");
+        const res = await window.api.excelDisaAktar(globalGecmisVerisi, 'Gecmis_Islemler');
+        if (res.success) alert("Geçmiş işlemler başarıyla Excel'e kaydedildi!");
+        else if (!res.canceled) alert("Excel kaydedilirken hata: " + res.error);
+    });
+
+    document.getElementById('btnRaporExcel').addEventListener('click', async () => {
+        if (globalRaporVerisi.length === 0) return alert("Dışa aktarılacak rapor bulunamadı!");
+        const res = await window.api.excelDisaAktar(globalRaporVerisi, 'Cari_Senet_Raporlari');
+        if (res.success) alert("Raporlar başarıyla Excel'e kaydedildi!");
+        else if (!res.canceled) alert("Excel kaydedilirken hata: " + res.error);
+    });
+    // --- YENİ: GEÇMİŞ İŞLEMLER TABLOSUNDA ANLIK ARAMA / FİLTRELEME MOTORU ---
+    document.getElementById('aramaKutusu').addEventListener('input', (e) => {
+        const aramaKelimesi = e.target.value.toLowerCase().trim();
+        const satirlar = gecmisTabloGövdesi.querySelectorAll('tr');
+
+        satirlar.forEach(satir => {
+            // Eğer tabloda veri yoksa veya "Yükleniyor" satırıysa filtreleme yapma, geç
+            if (satir.cells.length < 7) return; 
+
+            const cariUnvan = satir.cells[1].innerText.toLowerCase(); // Cari Ünvan Sütunu
+            const vadeTarihi = satir.cells[4].innerText.toLowerCase(); // Vade Tarihi Sütunu
+
+            // Yazılan kelime Ünvanda veya Tarihte geçiyorsa satırı göster, geçmiyorsa gizle
+            if (cariUnvan.includes(aramaKelimesi) || vadeTarihi.includes(aramaKelimesi)) {
+                satir.style.display = ''; 
+            } else {
+                satir.style.display = 'none'; 
+            }
+        });
+    });
     </script>
+    <div id="toastContainer" class="toast-container"></div>
+    <div id="kutlamaPopup" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.92); z-index: 999999; display: none; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.4s ease;">
+        <img src="komik.png" style="max-width: 80%; max-height: 80%; border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); transform: scale(0.5); transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+    </div>
 </body>
 </html>
