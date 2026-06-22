@@ -104,12 +104,11 @@ async function teslimFisiSayfasiOlustur(pdfDoc, ozelFont, fisVerisi) {
     page.drawText(`Düzenleme Tarihi: ${duzTarih}`, { x: 435, y: 690, size: 9, font: ozelFont, color: rgb(0.3, 0.3, 0.3) });
 
     let currentY = 650; const startX = 30; const rowHeight = 22;
-    const cols = [
-        { title: 'SIRA', w: 40, x: startX }, { title: 'DÜZENLEME', w: 85, x: startX + 40 },
-        { title: 'TİCARİ ÜNVAN', w: 225, x: startX + 125 }, { title: 'VADE', w: 85, x: startX + 350 },
-        { title: 'TUTAR', w: 100, x: startX + 435 }
-    ];
+    
+    // YENİ: Ön yüzden (index.html) gelen dinamik kolonları alıyoruz
+    const cols = fisVerisi.kolonlar; 
 
+    // Tablo başlıklarını çiz
     page.drawRectangle({ x: startX, y: currentY, width: 535, height: rowHeight, color: rgb(0.95, 0.96, 0.98), borderColor: rgb(0.7, 0.7, 0.7), borderWidth: 1 });
     cols.forEach(col => {
         page.drawText(col.title, { x: col.x + 8, y: currentY + 7, size: 9, font: ozelFont, color: rgb(0.2, 0.2, 0.2) });
@@ -117,31 +116,36 @@ async function teslimFisiSayfasiOlustur(pdfDoc, ozelFont, fisVerisi) {
     });
     currentY -= rowHeight;
 
-    const senetTutariFloat = parseFloat(String(fisVerisi.tutar).replace(/\./g, '').replace(',', '.'));
-    const formatliSenetTutari = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2 }).format(senetTutariFloat) + ' TL';
-    const formatliToplam = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2 }).format(senetTutariFloat * fisVerisi.taksitSayisi) + ' TL';
-
+    // 15 Satırlık A4 Tablo Çizimi (DİNAMİK)
     for (let i = 0; i < 15; i++) {
         page.drawRectangle({ x: startX, y: currentY, width: 535, height: rowHeight, borderColor: rgb(0.7, 0.7, 0.7), borderWidth: 1 });
         cols.forEach(col => {
             if(col.x > startX) page.drawLine({ start: { x: col.x, y: currentY }, end: { x: col.x, y: currentY + rowHeight }, thickness: 1, color: rgb(0.7, 0.7, 0.7) });
         });
 
-        page.drawText((i + 1).toString(), { x: cols[0].x + 15, y: currentY + 7, size: 9, font: ozelFont });
+        // YENİ: Ön yüzden gelen dinamik satır verilerini basıyoruz
+        if (i < fisVerisi.taksitSayisi && fisVerisi.satirlar[i]) {
+            const satirVerisi = fisVerisi.satirlar[i];
+            
+            cols.forEach((col, index) => {
+                let hucreYazisi = satirVerisi[index] || '';
+                let hucreX = col.x + 6;
+                let hucreY = currentY + 7;
+                let hucreFontSize = 9;
 
-        if (i < fisVerisi.taksitSayisi) {
-            const tTarih = ayEkle(fisVerisi.vade, i);
-            const formatliVade = `${String(tTarih.getDate()).padStart(2, '0')}.${String(tTarih.getMonth() + 1).padStart(2, '0')}.${tTarih.getFullYear()}`;
-
-            page.drawText(duzTarih, { x: cols[1].x + 8, y: currentY + 7, size: 9, font: ozelFont });
-            page.drawText(formatliVade, { x: cols[3].x + 8, y: currentY + 7, size: 9, font: ozelFont });
-            page.drawText(formatliSenetTutari, { x: cols[4].x + 10, y: currentY + 7, size: 9, font: ozelFont });
-
-            let unvanFontSize = fisVerisi.unvan.length > 45 ? 6.5 : 8;
-            let unvanY = fisVerisi.unvan.length > 45 ? currentY + 13 : currentY + 7;
-            let unvanLineSpacing = fisVerisi.unvan.length > 45 ? 8 : 11;
-
-            drawWrappedText(page, fisVerisi.unvan, cols[2].x + 6, unvanY, 210, ozelFont, unvanFontSize, unvanLineSpacing);
+                // Ünvan veya Özel alan uzunsa metni alt satıra kaydır
+                if (col.id === 'unvan') {
+                    hucreFontSize = hucreYazisi.length > 45 ? 6.5 : 8;
+                    hucreY = hucreYazisi.length > 45 ? currentY + 13 : currentY + 7;
+                    let wrapSpacing = hucreYazisi.length > 45 ? 8 : 11;
+                    drawWrappedText(page, hucreYazisi, hucreX, hucreY, col.w - 10, ozelFont, hucreFontSize, wrapSpacing);
+                } else {
+                    page.drawText(hucreYazisi, { x: hucreX, y: hucreY, size: hucreFontSize, font: ozelFont, color: rgb(0.1, 0.1, 0.1) });
+                }
+            });
+        } else {
+            // Boş satır olsa bile sadece SIRA numarasını bas
+            page.drawText((i + 1).toString(), { x: cols[0].x + 15, y: currentY + 7, size: 9, font: ozelFont });
         }
         currentY -= rowHeight;
     }
@@ -152,6 +156,8 @@ async function teslimFisiSayfasiOlustur(pdfDoc, ozelFont, fisVerisi) {
 
     page.drawText('TESLİM ALAN', { x: 230, y: currentY + 15, size: 9, font: ozelFont, color: rgb(0.4, 0.4, 0.4) });
     page.drawText('KAŞE - İMZA', { x: 230, y: currentY, size: 10, font: ozelFont, color: rgb(0.1, 0.1, 0.1) });
+
+    const formatliToplam = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2 }).format(fisVerisi.toplamTutarFloat) + ' TL';
 
     page.drawRectangle({ x: 415, y: currentY - 10, width: 150, height: 40, color: rgb(0.95, 0.96, 0.98), borderColor: rgb(0.7, 0.7, 0.7), borderWidth: 1, borderRadius: 4 });
     page.drawText('GENEL TOPLAM', { x: 450, y: currentY + 16, size: 8, font: ozelFont, color: rgb(0.4, 0.4, 0.4) });
