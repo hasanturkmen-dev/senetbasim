@@ -1,6 +1,9 @@
 const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
+
+// YENİ: Donanım İvmesini Kapat (Eski PC'lerde beyaz/siyah ekran sorununu kökünden çözer)
+app.disableHardwareAcceleration();
 const { PDFDocument, rgb } = require('pdf-lib');
 const fontkit = require('@pdf-lib/fontkit');
 const xlsx = require('xlsx');
