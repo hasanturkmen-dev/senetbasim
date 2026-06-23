@@ -74,8 +74,7 @@ function sayiyiYaziyaCevir(hamTutar) {
     if (parseInt(kurus) > 0) yaziKurus = ", " + ucluOku(parseInt(kurus)) + " KURUŞ"; 
     return "# " + yaziTL + yaziKurus + " #";
 }
-
-// --- MODERN TESLİM FİŞİ ÇİZİM MOTORU (Ortak Kullanım İçin) ---
+// --- Orijinal Matbaa Tasarımlı Teslim Fişi PDF Motoru ---
 async function teslimFisiSayfasiOlustur(pdfDoc, ozelFont, fisVerisi) {
     const a4Width = 595.28; const a4Height = 841.89; // Tam A4 Formatı
     const page = pdfDoc.addPage([a4Width, a4Height]);
@@ -87,28 +86,35 @@ async function teslimFisiSayfasiOlustur(pdfDoc, ozelFont, fisVerisi) {
         } 
     } catch (e) {}
 
+    // Sol Üst - Logo ve Kurumsal Kimlik (PDF Tasarımına Göre)
     if (logoImage) {
         const scaled = logoImage.scaleToFit(80, 65);
         page.drawImage(logoImage, { x: 30, y: 815 - scaled.height, width: scaled.width, height: scaled.height });
     }
 
-    page.drawText('S.S. TÜM OPTİSYENLER VE GÖZLÜKÇÜLER TEMİN TEVZİ KOOPERATİFİ', { x: 120, y: 795, size: 12, font: ozelFont, color: rgb(0.05, 0.1, 0.15) });
-    page.drawText('Fevzipaşa Mahallesi 847 Sokak No: 4/A Konak - İZMİR', { x: 120, y: 780, size: 9, font: ozelFont, color: rgb(0.3, 0.3, 0.3) });
-    page.drawText('Tel: 0232 489 89 62  |  Fax: 0232 489 39 62', { x: 120, y: 767, size: 9, font: ozelFont, color: rgb(0.3, 0.3, 0.3) });
-    page.drawText('Mersis No: 0875 0359 0980 00 15  |  Tic. Sicil: 155588  |  Kemeraltı V.D.', { x: 120, y: 754, size: 9, font: ozelFont, color: rgb(0.3, 0.3, 0.3) });
-
-    page.drawRectangle({ x: 395, y: 705, width: 170, height: 26, color: rgb(0.05, 0.1, 0.15) });
-    page.drawText('SENET ALINDI BELGESİ', { x: 415, y: 714, size: 11, font: ozelFont, color: rgb(1, 1, 1) });
+    page.drawText('S.S. Tüm Optisyenler ve Gözlükcüler', { x: 120, y: 805, size: 12, font: ozelFont, color: rgb(0.1, 0.1, 0.1) });
+    page.drawText('Temin Tevzi Kooperatifi', { x: 120, y: 790, size: 12, font: ozelFont, color: rgb(0.1, 0.1, 0.1) });
     
-    const duzTarih = fisVerisi.duzenlemeTarihi.split('-').reverse().join('.');
-    page.drawText(`Düzenleme Tarihi: ${duzTarih}`, { x: 435, y: 690, size: 9, font: ozelFont, color: rgb(0.3, 0.3, 0.3) });
+    page.drawText('Fevzipaşa Mahallesi 847 Sokak No: 4/A Konak - İZMİR', { x: 120, y: 775, size: 9, font: ozelFont, color: rgb(0.3, 0.3, 0.3) });
+    page.drawText('Tel: 0232 489 89 62  |  Fax: 0232 489 39 62', { x: 120, y: 762, size: 9, font: ozelFont, color: rgb(0.3, 0.3, 0.3) });
+    page.drawText('muhasebe@gozkoop.com  |  www.gozkoop.com', { x: 120, y: 749, size: 9, font: ozelFont, color: rgb(0.3, 0.3, 0.3) });
+    page.drawText('Mersis No: 0875 0359 0980 00 15  |  Ticaret Sicil No: 155588  |  Kemeraltı V.D. 8750359098', { x: 120, y: 736, size: 9, font: ozelFont, color: rgb(0.3, 0.3, 0.3) });
 
-    let currentY = 650; const startX = 30; const rowHeight = 22;
+    // Orta Başlık Çizgisi
+    const title = 'SENET ALINDI BELGESİ';
+    const titleWidth = ozelFont.widthOfTextAtSize(title, 14);
+    page.drawRectangle({ x: (a4Width - titleWidth) / 2 - 20, y: 678, width: titleWidth + 40, height: 28, color: rgb(0.95, 0.96, 0.98), borderColor: rgb(0.8, 0.85, 0.9), borderWidth: 1 });
+    page.drawText(title, { x: (a4Width - titleWidth) / 2, y: 688, size: 14, font: ozelFont, color: rgb(0.1, 0.15, 0.2) });
     
-    // YENİ: Ön yüzden (index.html) gelen dinamik kolonları alıyoruz
+    // Sağ Üst Tarih Alanı (Dinamik)
+    const ustTarihFormatli = fisVerisi.ustTarih.split('-').reverse().join('.');
+    page.drawText(`Tarih: ${ustTarihFormatli}`, { x: 460, y: 688, size: 11, font: ozelFont, color: rgb(0.2, 0.25, 0.3) });
+
+    // Dinamik Tablo Çizimi
+    let currentY = 640; const startX = 30; const rowHeight = 22;
     const cols = fisVerisi.kolonlar; 
 
-    // Tablo başlıklarını çiz
+    // Tablo Başlıkları
     page.drawRectangle({ x: startX, y: currentY, width: 535, height: rowHeight, color: rgb(0.95, 0.96, 0.98), borderColor: rgb(0.7, 0.7, 0.7), borderWidth: 1 });
     cols.forEach(col => {
         page.drawText(col.title, { x: col.x + 8, y: currentY + 7, size: 9, font: ozelFont, color: rgb(0.2, 0.2, 0.2) });
@@ -116,24 +122,19 @@ async function teslimFisiSayfasiOlustur(pdfDoc, ozelFont, fisVerisi) {
     });
     currentY -= rowHeight;
 
-    // 15 Satırlık A4 Tablo Çizimi (DİNAMİK)
+    // A4 Satırları
     for (let i = 0; i < 15; i++) {
         page.drawRectangle({ x: startX, y: currentY, width: 535, height: rowHeight, borderColor: rgb(0.7, 0.7, 0.7), borderWidth: 1 });
         cols.forEach(col => {
             if(col.x > startX) page.drawLine({ start: { x: col.x, y: currentY }, end: { x: col.x, y: currentY + rowHeight }, thickness: 1, color: rgb(0.7, 0.7, 0.7) });
         });
 
-        // YENİ: Ön yüzden gelen dinamik satır verilerini basıyoruz
         if (i < fisVerisi.taksitSayisi && fisVerisi.satirlar[i]) {
             const satirVerisi = fisVerisi.satirlar[i];
-            
             cols.forEach((col, index) => {
                 let hucreYazisi = satirVerisi[index] || '';
-                let hucreX = col.x + 6;
-                let hucreY = currentY + 7;
-                let hucreFontSize = 9;
+                let hucreX = col.x + 6; let hucreY = currentY + 7; let hucreFontSize = 9;
 
-                // Ünvan veya Özel alan uzunsa metni alt satıra kaydır
                 if (col.id === 'unvan') {
                     hucreFontSize = hucreYazisi.length > 45 ? 6.5 : 8;
                     hucreY = hucreYazisi.length > 45 ? currentY + 13 : currentY + 7;
@@ -144,24 +145,29 @@ async function teslimFisiSayfasiOlustur(pdfDoc, ozelFont, fisVerisi) {
                 }
             });
         } else {
-            // Boş satır olsa bile sadece SIRA numarasını bas
             page.drawText((i + 1).toString(), { x: cols[0].x + 15, y: currentY + 7, size: 9, font: ozelFont });
         }
         currentY -= rowHeight;
     }
 
+    // Kaşe - İmza ve Toplam Tutar (Smooth Matbaa Stili)
     currentY -= 40;
-    page.drawText('TESLİM EDEN', { x: 70, y: currentY + 15, size: 9, font: ozelFont, color: rgb(0.4, 0.4, 0.4) });
-    page.drawText('KAŞE - İMZA', { x: 70, y: currentY, size: 10, font: ozelFont, color: rgb(0.1, 0.1, 0.1) });
+    
+    // Teslim Eden Bölümü
+    page.drawText('TESLİM EDEN', { x: 75, y: currentY + 15, size: 9, font: ozelFont, color: rgb(0.4, 0.45, 0.5) });
+    page.drawLine({ start: { x: 50, y: currentY + 8 }, end: { x: 155, y: currentY + 8 }, thickness: 0.5, color: rgb(0.7, 0.75, 0.8) });
+    page.drawText('KAŞE - İMZA', { x: 75, y: currentY - 5, size: 10, font: ozelFont, color: rgb(0.15, 0.2, 0.25) });
 
-    page.drawText('TESLİM ALAN', { x: 230, y: currentY + 15, size: 9, font: ozelFont, color: rgb(0.4, 0.4, 0.4) });
-    page.drawText('KAŞE - İMZA', { x: 230, y: currentY, size: 10, font: ozelFont, color: rgb(0.1, 0.1, 0.1) });
+    // Teslim Alan Bölümü
+    page.drawText('TESLİM ALAN', { x: 235, y: currentY + 15, size: 9, font: ozelFont, color: rgb(0.4, 0.45, 0.5) });
+    page.drawLine({ start: { x: 210, y: currentY + 8 }, end: { x: 315, y: currentY + 8 }, thickness: 0.5, color: rgb(0.7, 0.75, 0.8) });
+    page.drawText('KAŞE - İMZA', { x: 235, y: currentY - 5, size: 10, font: ozelFont, color: rgb(0.15, 0.2, 0.25) });
 
+    // Toplam Tutar (Premium Yumuşak Kutu)
     const formatliToplam = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2 }).format(fisVerisi.toplamTutarFloat) + ' TL';
-
-    page.drawRectangle({ x: 415, y: currentY - 10, width: 150, height: 40, color: rgb(0.95, 0.96, 0.98), borderColor: rgb(0.7, 0.7, 0.7), borderWidth: 1, borderRadius: 4 });
-    page.drawText('GENEL TOPLAM', { x: 450, y: currentY + 16, size: 8, font: ozelFont, color: rgb(0.4, 0.4, 0.4) });
-    page.drawText(formatliToplam, { x: 435, y: currentY - 2, size: 12, font: ozelFont, color: rgb(0.05, 0.1, 0.15) });
+    page.drawRectangle({ x: 375, y: currentY - 15, width: 190, height: 45, color: rgb(0.96, 0.97, 0.98), borderColor: rgb(0.7, 0.75, 0.8), borderWidth: 1 });
+    page.drawText('GENEL TOPLAM', { x: 390, y: currentY + 16, size: 8, font: ozelFont, color: rgb(0.4, 0.45, 0.5) });
+    page.drawText(formatliToplam, { x: 390, y: currentY - 4, size: 15, font: ozelFont, color: rgb(0.05, 0.15, 0.25) });
 }
 
 // --- HAYALET YAZDIRMA (GHOST PRINTING) YARDIMCISI ---

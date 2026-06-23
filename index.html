@@ -72,6 +72,11 @@
         .toast-box.show { transform: translateX(0); }
         .toast-box.success { border-left-color: #10b981; }
         .toast-box.error { border-left-color: #ef4444; }
+        .kolon-surukle { transition: transform 0.2s, box-shadow 0.2s; user-select: none; }
+        .kolon-surukle.dragging { opacity: 0.6; box-shadow: 0 10px 20px rgba(0,0,0,0.15); transform: scale(1.02); z-index: 9999; }
+        .kolon-surukle:hover { background: #f1f5f9; }
+        .kolon-tutacagi { cursor: grab; font-weight: bold; color: #94a3b8; padding-right: 5px; }
+        .kolon-tutacagi:active { cursor: grabbing; }
     </style>
 </head>
 <body>
@@ -189,7 +194,7 @@
             <div class="history-header">
                 <h2 style="margin: 0; color: #0f172a;">Geçmiş İşlemler Tablosu</h2>
                 <div style="display: flex; gap: 10px;">
-                    <input type="text" class="search-box" id="aramaKutusu" placeholder="Cari Ünvan veya Tarih Ara...">
+                    <input type="text" class="search-box" id="aramaKutusu" placeholder="Senet No (DGN vb.), Cari veya Tarih Ara...">
                     <button class="btn btn-primary" id="btnGecmisExcel" style="padding: 10px 15px; background-color: #10b981;">📥 Excel İndir</button>
                 </div>
             </div>
@@ -199,6 +204,7 @@
                     <thead>
                         <tr>
                             <th>İşlem ID</th>
+                            <th>Senet No</th>
                             <th>Cari / Ortak Ünvanı</th>
                             <th>Toplam Tutar</th>
                             <th>Taksit</th>
@@ -252,32 +258,42 @@
             </div>
         </div>
     </div>
-
     <div class="modal-overlay" id="teslimModal">
         <div class="modal-content" style="width: 900px; max-height: 90vh;">
-            <div class="modal-header">
+            <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center;">
                 <span>Teslim Fişi Dinamik Yönetim Paneli</span>
-                <input type="date" id="teslimDuzenlemeTarihi" style="font-size:12px; padding:6px; border-radius: 4px; border: 1px solid #cbd5e1;">
+                <div style="display:flex; gap: 15px; align-items:center;">
+                    <div style="display:flex; align-items:center; gap:5px;">
+                        <span style="font-size:11px; color:#64748b;">Sağ Üst Tarih:</span>
+                        <input type="date" id="ustTarihInput" style="font-size:11px; padding:4px; border-radius: 4px; border: 1px solid #cbd5e1;">
+                    </div>
+                    <div style="display:flex; align-items:center; gap:5px;">
+                        <span style="font-size:11px; color:#64748b;">Tablo İçi Düz. Trh:</span>
+                        <input type="date" id="teslimDuzenlemeTarihi" style="font-size:11px; padding:4px; border-radius: 4px; border: 1px solid #cbd5e1;">
+                    </div>
+                </div>
             </div>
             
-            <div style="background: #f8fafc; padding: 15px 24px; border-bottom: 1px solid #e2e8f0; display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
-                <div style="font-size: 12px; font-weight: 700; color: #475569;">GÖRÜNÜR KOLONLAR:</div>
-                <label style="font-size: 13px; display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                    <input type="checkbox" id="chkColDuzenleme" checked> Düzenleme Tarihi
-                </label>
-                <label style="font-size: 13px; display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                    <input type="checkbox" id="chkColUnvan" checked> Ticari Ünvan
-                </label>
-                <label style="font-size: 13px; display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                    <input type="checkbox" id="chkColVade" checked> Vade
-                </label>
-                <label style="font-size: 13px; display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                    <input type="checkbox" id="chkColTutar" checked> Tutar
-                </label>
+            <div style="background: #f8fafc; padding: 15px 24px; border-bottom: 1px solid #e2e8f0; display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                <div style="font-size: 11px; font-weight: 700; color: #475569; margin-right: 5px;">KOLON SIRALAMASI<br>(Sürükleyip Bırakın) :</div>
                 
-                <div style="flex: 1;"></div>
-                <div style="display: flex; gap: 8px;">
-                    <input type="text" id="yeniKolonAdiInput" class="form-control" placeholder="Sütun Adı (Örn: Portföy)" style="width: 180px; height: 30px; font-size: 12px;">
+                <div id="kolonKapsayici" style="display: flex; gap: 8px; flex: 1; flex-wrap: wrap; align-items: center;">
+                    <div class="kolon-surukle" draggable="true" data-id="duzenleme" data-title="DÜZENLEME" style="padding: 6px 12px; background: white; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 12px; display:flex; align-items:center;">
+                        <span class="kolon-tutacagi">⋮⋮</span> <input type="checkbox" id="chkColDuzenleme" checked style="margin:0 6px;"> Düzenleme
+                    </div>
+                    <div class="kolon-surukle" draggable="true" data-id="unvan" data-title="TİCARİ ÜNVAN" style="padding: 6px 12px; background: white; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 12px; display:flex; align-items:center;">
+                        <span class="kolon-tutacagi">⋮⋮</span> <input type="checkbox" id="chkColUnvan" checked style="margin:0 6px;"> Ünvan
+                    </div>
+                    <div class="kolon-surukle" draggable="true" data-id="vade" data-title="VADE" style="padding: 6px 12px; background: white; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 12px; display:flex; align-items:center;">
+                        <span class="kolon-tutacagi">⋮⋮</span> <input type="checkbox" id="chkColVade" checked style="margin:0 6px;"> Vade
+                    </div>
+                    <div class="kolon-surukle" draggable="true" data-id="tutar" data-title="TUTAR" style="padding: 6px 12px; background: white; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 12px; display:flex; align-items:center;">
+                        <span class="kolon-tutacagi">⋮⋮</span> <input type="checkbox" id="chkColTutar" checked style="margin:0 6px;"> Tutar
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 8px; border-left: 2px solid #e2e8f0; padding-left: 15px;">
+                    <input type="text" id="yeniKolonAdiInput" class="form-control" placeholder="Örn: Portföy" style="width: 120px; height: 30px; font-size: 11px;">
                     <button id="btnYeniKolon" class="btn-sm" style="background: #10b981; color: white; height: 30px;">+ Ekle</button>
                 </div>
             </div>
@@ -295,45 +311,53 @@
                         <input type="radio" name="veriTipi" value="farkli"> Her Satır İçin Farklı Değer Gir
                     </label>
                 </div>
-                <div id="dinamikInputKapsayici" style="display: flex; flex-wrap: wrap; gap: 10px;">
-                    </div>
+                <div id="dinamikInputKapsayici" style="display: flex; flex-wrap: wrap; gap: 10px;"></div>
             </div>
 
             <div class="modal-body" style="padding: 20px; background: #e2e8f0; display: flex; justify-content: center;">
                 <div class="a4-preview" style="background: white; padding: 20px; width: 650px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
+                    
                     <div class="a4-header-preview">
                         <div style="display:flex; align-items:center;">
                             <img src="logo.png" class="a4-logo-preview" alt="Logo">
                             <div class="a4-info-text">
-                                <strong>S.S. TÜM OPTİSYENLER VE GÖZLÜKÇÜLER KOOPERATİFİ</strong><br>
-                                Fevzipaşa Mahallesi 847 Sokak No: 4/A Konak - İZMİR<br>
-                                Tel: 0232 489 89 62 &nbsp;|&nbsp; Fax: 0232 489 39 62<br>
-                                Mersis No: 0875 0359 0980 00 15 &nbsp;|&nbsp; Tic. Sicil: 155588 &nbsp;|&nbsp; Kemeraltı V.D.
+                                <strong style="font-size:14px;">S.S. Tüm Optisyenler ve Gözlükcüler</strong><br>
+                                <strong style="font-size:13px; color:#1e293b;">Temin Tevzi Kooperatifi</strong><br>
+                                <span style="font-size:10px; color:#64748b;">Fevzipaşa Mahallesi 847 Sokak No: 4/A Konak - İZMİR</span><br>
+                                <span style="font-size:10px; color:#64748b;">Tel: 0232 489 89 62 &nbsp;|&nbsp; Fax: 0232 489 39 62</span><br>
+                                <span style="font-size:10px; color:#64748b;">Mersis No: 0875 0359 0980 00 15 &nbsp;|&nbsp; Tic. Sicil: 155588</span>
                             </div>
                         </div>
                         <div style="text-align: right; display:flex; flex-direction:column; justify-content:center; align-items:flex-end;">
-                            <div class="a4-title-box">SENET ALINDI BELGESİ</div>
-                            <div style="font-size:11px; color:#64748b; margin-top:5px;">Düzenleme Tarihi: <strong id="prev_duzenleme" style="color:#0f172a;">...</strong></div>
+                            <div style="font-size: 14px; font-weight:bold; letter-spacing: 1px; background:#f8fafc; border:1px solid #cbd5e1; padding:6px 14px; border-radius:4px; margin-bottom:6px; color:#0f172a;">SENET ALINDI BELGESİ</div>
+                            <div style="font-size:12px; color:#475569;">Tarih: <strong id="prev_ust_tarih" style="color:#0f172a;">...</strong></div>
                         </div>
                     </div>
                     
                     <table class="a4-table-preview" style="width: 100%; border-collapse: collapse; font-size: 10px; text-align: left; margin-top: 15px;">
-                        <thead id="teslimTableHead" style="background: #f8fafc; border-bottom: 2px solid #cbd5e1;">
-                            </thead>
-                        <tbody id="teslimTableBody">
-                            </tbody>
+                        <thead id="teslimTableHead" style="background: #f8fafc; border-bottom: 2px solid #cbd5e1;"></thead>
+                        <tbody id="teslimTableBody"></tbody>
                     </table>
                     
-                    <div class="a4-footer-preview" style="margin-top: 20px;">
-                        <div class="signature-area">
-                            <div class="signature-box"><strong>TESLİM EDEN</strong>KAŞE - İMZA</div>
-                            <div class="signature-box"><strong>TESLİM ALAN</strong>KAŞE - İMZA</div>
+                    <div class="a4-footer-preview" style="margin-top: 20px; display:flex; align-items:center;">
+                        <div class="signature-area" style="flex:2; display:flex; gap: 40px; padding-left: 20px;">
+                            <div class="signature-box" style="border:none; align-items:center; text-align:center;">
+                                <span style="font-size:10px; color:#64748b; margin-bottom:4px; font-weight: 600;">TESLİM EDEN</span>
+                                <div style="border-top:1px solid #cbd5e1; width:100px; margin-bottom:4px;"></div>
+                                <strong style="font-size:11px; color:#1e293b;">KAŞE - İMZA</strong>
+                            </div>
+                            <div class="signature-box" style="border:none; align-items:center; text-align:center;">
+                                <span style="font-size:10px; color:#64748b; margin-bottom:4px; font-weight: 600;">TESLİM ALAN</span>
+                                <div style="border-top:1px solid #cbd5e1; width:100px; margin-bottom:4px;"></div>
+                                <strong style="font-size:11px; color:#1e293b;">KAŞE - İMZA</strong>
+                            </div>
                         </div>
-                        <div class="a4-total-box">
-                            <div>GENEL TOPLAM</div>
-                            <div id="prev_toplamTutar">0,00 TL</div>
+                        <div class="a4-total-box" style="flex:1; background:#f8fafc; border:1px solid #cbd5e1; border-radius:6px; padding:12px; text-align:left; min-width: 180px;">
+                            <div style="font-size:10px; color:#64748b; font-weight:bold; margin-bottom:2px;">GENEL TOPLAM</div>
+                            <div id="prev_toplamTutar" style="font-size:18px; color:#0f172a; font-weight:900;">0,00 TL</div>
                         </div>
                     </div>
+
                 </div>
             </div>
             <div class="modal-footer">
@@ -342,7 +366,6 @@
             </div>
         </div>
     </div>
-
     <div class="modal-overlay" id="excelModal">
         <div class="modal-content" style="width: 950px;">
             <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
@@ -473,6 +496,7 @@
                 
                 globalGecmisVerisi = sonuc.data.map(k => ({
                     'İşlem ID': k.islem_id,
+                    'Senet No (Kök)': k.senet_koku || '-',
                     'Cari Ünvanı': k.ticari_unvan || 'Bilinmeyen Cari',
                     'Toplam Tutar (TL)': k.toplam_tutar,
                     'Taksit Sayısı': k.taksit_sayisi,
@@ -484,10 +508,13 @@
                     const vTarih = kayit.baslangic_vadesi.split('-').reverse().join('.');
                     const formatliTutar = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2 }).format(kayit.toplam_tutar);
                     const teslimDurumu = kayit.teslim_fisi_id ? `<span style="color: #10b981; font-weight: bold;">✔ Kesildi</span>` : `<span style="color: #ef4444;">✖ Bekliyor</span>`;
+                    const senetKokuGosterimi = kayit.senet_koku ? kayit.senet_koku : '-';
                     
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
-                        <td>#${kayit.islem_id}</td><td><strong>${kayit.ticari_unvan || 'Bilinmeyen Cari'}</strong></td>
+                        <td>#${kayit.islem_id}</td>
+                        <td><span style="background: #e2e8f0; color: #0f172a; padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 11px;">${senetKokuGosterimi}</span></td>
+                        <td><strong>${kayit.ticari_unvan || 'Bilinmeyen Cari'}</strong></td>
                         <td>${formatliTutar} ₺</td><td>${kayit.taksit_sayisi} Ay</td><td>${vTarih}</td><td>${teslimDurumu}</td>
                         <td style="display: flex; gap: 5px;">
                             <button class="btn-sm" style="background-color: #10b981; color: white; border: none; cursor: pointer;" onclick="gecmistenYazdir(${kayit.islem_id})" title="Senetleri Yazdır">🖨 Senet</button>
@@ -802,9 +829,9 @@
             printerName: printerSelect.value 
         };
 
-        if (!tempVeri.ortakId) { alert("Lütfen bir Cari / Ortak seçin."); return; }
-        if (!tempVeri.tutar || !tempVeri.vade) { alert("Lütfen tutar ve vade tarihi alanlarını doldurun."); return; }
-        if (!tempVeri.printerName) { alert("Lütfen yazdırmak için bir YAZICI seçin."); return; }
+        if (!tempVeri.ortakId) { bildirimGoster("Lütfen bir Cari / Ortak seçin.", "error"); return; }
+        if (!tempVeri.tutar || !tempVeri.vade) { bildirimGoster("Lütfen tutar ve vade tarihi alanlarını doldurun.", "error"); return; }
+        if (!tempVeri.printerName) { bildirimGoster("Lütfen yazdırmak için bir YAZICI seçin.", "error"); return; }
 
         tempKoordinatlar = {};
         draggables.forEach(elem => {
@@ -947,32 +974,64 @@
             btn.innerText = "Veriyi Onayla ve Yazdır"; btn.disabled = false;
         } catch (err) { console.error(err); }
     });
-
-
     // ========================================================================
-    // --- YENİ: AKILLI TESLİM FİŞİ DİNAMİK MOTORU (HTML ve JS) ---
+    // --- YENİ: SÜRÜKLE BIRAK AKILLI TESLİM FİŞİ DİNAMİK MOTORU ---
     // ========================================================================
-    let aktifTeslimVerisi = null; // Fişin ham verilerini tutar
-    let ozelKolonAdi = ''; // Kullanıcının eklediği kolon adı
-    let ozelKolonVerileri = []; // Her satır için özel kolon verisi
+    let aktifTeslimVerisi = null;
+    let ozelKolonVerileri = [];
+
+    // --- SÜRÜKLE BIRAK (DRAG & DROP) LOGIC ---
+    const kolonKapsayici = document.getElementById('kolonKapsayici');
+    
+    function setDraggableEvents(item) {
+        item.addEventListener('dragstart', () => item.classList.add('dragging'));
+        item.addEventListener('dragend', () => { 
+            item.classList.remove('dragging'); 
+            renderTeslimTablosu(); // Bıraktığı an tabloyu ve sırayı güncelle
+        });
+    }
+
+    kolonKapsayici.addEventListener('dragover', e => {
+        e.preventDefault();
+        const afterElement = getDragAfterElement(kolonKapsayici, e.clientX);
+        const draggable = document.querySelector('.dragging');
+        if (afterElement == null) { kolonKapsayici.appendChild(draggable); } 
+        else { kolonKapsayici.insertBefore(draggable, afterElement); }
+    });
+
+    function getDragAfterElement(container, x) {
+        const draggableElements = [...container.querySelectorAll('.kolon-surukle:not(.dragging)')];
+        return draggableElements.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = x - box.left - box.width / 2;
+            if (offset < 0 && offset > closest.offset) {
+                return { offset: offset, element: child };
+            } else { return closest; }
+        }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
+
+    // İlk baştaki kolonlara drag eventlerini ekle
+    document.querySelectorAll('.kolon-surukle').forEach(setDraggableEvents);
+
 
     function renderTeslimTablosu() {
         const duzTarih = inpTeslimDuzenleme.value.split('-').reverse().join('.');
-        document.getElementById('prev_duzenleme').innerText = duzTarih;
+        document.getElementById('prev_ust_tarih').innerText = document.getElementById('ustTarihInput').value.split('-').reverse().join('.');
 
-        // Hangi kolonların aktif olduğunu bul
+        // YENİ: DOM'daki sıraya göre kolonları çekiyoruz (İşte sihir burada başlıyor)
         const aktifKolonlar = [{ id: 'sira', title: 'SIRA' }];
-        if (document.getElementById('chkColDuzenleme').checked) aktifKolonlar.push({ id: 'duzenleme', title: 'DÜZENLEME' });
-        if (document.getElementById('chkColUnvan').checked) aktifKolonlar.push({ id: 'unvan', title: 'TİCARİ ÜNVAN' });
-        if (document.getElementById('chkColVade').checked) aktifKolonlar.push({ id: 'vade', title: 'VADE' });
-        if (document.getElementById('chkColTutar').checked) aktifKolonlar.push({ id: 'tutar', title: 'TUTAR' });
-        if (ozelKolonAdi !== '') aktifKolonlar.push({ id: 'ozel', title: ozelKolonAdi.toUpperCase() });
+        
+        const uiKolonlar = kolonKapsayici.querySelectorAll('.kolon-surukle');
+        uiKolonlar.forEach(div => {
+            const chk = div.querySelector('input[type="checkbox"]');
+            if(chk && chk.checked) {
+                aktifKolonlar.push({ id: div.dataset.id, title: div.dataset.title });
+            }
+        });
 
-        // THead Oluştur
         const thead = document.getElementById('teslimTableHead');
         thead.innerHTML = '<tr>' + aktifKolonlar.map(c => `<th style="padding: 8px 5px; border-bottom: 1px solid #cbd5e1;">${c.title}</th>`).join('') + '</tr>';
 
-        // TBody Oluştur
         const tbody = document.getElementById('teslimTableBody');
         tbody.innerHTML = '';
         
@@ -989,11 +1048,11 @@
                 let tdHTML = '';
                 aktifKolonlar.forEach(col => {
                     if (col.id === 'sira') tdHTML += `<td style="padding: 8px 5px; border-bottom: 1px solid #e2e8f0;">${i+1}</td>`;
-                    if (col.id === 'duzenleme') tdHTML += `<td style="padding: 8px 5px; border-bottom: 1px solid #e2e8f0;">${duzTarih}</td>`;
-                    if (col.id === 'unvan') tdHTML += `<td style="padding: 8px 5px; border-bottom: 1px solid #e2e8f0; text-align:left; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${aktifTeslimVerisi.unvan}</td>`;
-                    if (col.id === 'vade') tdHTML += `<td style="padding: 8px 5px; border-bottom: 1px solid #e2e8f0;">${formatliVade}</td>`;
-                    if (col.id === 'tutar') tdHTML += `<td style="padding: 8px 5px; border-bottom: 1px solid #e2e8f0;">${formatliSenetTutari}</td>`;
-                    if (col.id === 'ozel') tdHTML += `<td style="padding: 8px 5px; border-bottom: 1px solid #e2e8f0;"><strong style="color:#059669;">${ozelKolonVerileri[i] || ''}</strong></td>`;
+                    else if (col.id === 'duzenleme') tdHTML += `<td style="padding: 8px 5px; border-bottom: 1px solid #e2e8f0;">${duzTarih}</td>`;
+                    else if (col.id === 'unvan') tdHTML += `<td style="padding: 8px 5px; border-bottom: 1px solid #e2e8f0; text-align:left; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${aktifTeslimVerisi.unvan}</td>`;
+                    else if (col.id === 'vade') tdHTML += `<td style="padding: 8px 5px; border-bottom: 1px solid #e2e8f0;">${formatliVade}</td>`;
+                    else if (col.id === 'tutar') tdHTML += `<td style="padding: 8px 5px; border-bottom: 1px solid #e2e8f0;">${formatliSenetTutari}</td>`;
+                    else if (col.id === 'ozel') tdHTML += `<td style="padding: 8px 5px; border-bottom: 1px solid #e2e8f0; color: #0f172a;">${ozelKolonVerileri[i] || ''}</td>`;
                 });
                 tr.innerHTML = tdHTML;
             } else {
@@ -1005,76 +1064,86 @@
 
     function resetTeslimModali(veri) {
         aktifTeslimVerisi = veri;
-        ozelKolonAdi = ''; ozelKolonVerileri = [];
-        document.getElementById('chkColDuzenleme').checked = true;
-        document.getElementById('chkColUnvan').checked = true;
-        document.getElementById('chkColVade').checked = true;
-        document.getElementById('chkColTutar').checked = true;
+        
+        // Temizlik: Daha önce eklenmiş "Özel" kolon varsa DOM'dan sil
+        const eskiOzelKolon = kolonKapsayici.querySelector('[data-id="ozel"]');
+        if (eskiOzelKolon) eskiOzelKolon.remove();
+        
+        ozelKolonVerileri = [];
+        document.querySelectorAll('#kolonKapsayici input[type="checkbox"]').forEach(chk => chk.checked = true);
         document.getElementById('dinamikVeriGirisiPaneli').style.display = 'none';
         
-        if (veri.vade) { inpTeslimDuzenleme.value = veri.vade; } else { inpTeslimDuzenleme.valueAsDate = new Date(); }
+        const bgTarih = new Date().toISOString().split('T')[0];
+        document.getElementById('ustTarihInput').value = bgTarih;
+        if (veri.vade) { inpTeslimDuzenleme.value = veri.vade; } else { inpTeslimDuzenleme.value = bgTarih; }
+        
         renderTeslimTablosu();
         teslimModal.style.display = 'flex';
     }
 
-    // 1. Sıfırdan Teslim Fişi Butonu
     document.getElementById('btnTeslimFisi').addEventListener('click', () => {
         islemModu = 'YENI';
-        if (!aktifSenetGecmisId) return alert("Önce 'Senet Oluştur' işlemini yapmalısınız.");
-        if (!printerSelect.value) return alert("Lütfen yazdırmak için bir YAZICI seçin.");
+        if (!aktifSenetGecmisId) { bildirimGoster("Önce 'Senet Oluştur' işlemini yapmalısınız.", "error"); return; }
+        if (!printerSelect.value) { bildirimGoster("Lütfen yazdırmak için bir YAZICI seçin.", "error"); return; }
         resetTeslimModali({
             taksitSayisi: parseInt(document.getElementById('taksitSayisi').value) || 1,
-            unvan: document.getElementById('prev_unvan').innerText,
-            tutar: inpTutar.value, vade: inpVade.value
+            unvan: document.getElementById('prev_unvan').innerText, tutar: inpTutar.value, vade: inpVade.value
         });
     });
 
-    // 2. Geçmişten Teslim Fişi Butonu
     window.gecmistenTeslimFisiCikar = async (islemId) => {
         if(!printerSelect.value) return alert("Lütfen sol üstten bir YAZICI seçin.");
         const sonuc = await window.api.islemDetayGetir(islemId);
         if(!sonuc.success) return alert("Hata: " + sonuc.error);
         aktifSenetGecmisId = islemId; islemModu = 'GECMIS_FIS';
         resetTeslimModali({
-            taksitSayisi: sonuc.data.taksit_sayisi,
-            unvan: sonuc.data.ticari_unvan || 'Bilinmeyen Cari',
+            taksitSayisi: sonuc.data.taksit_sayisi, unvan: sonuc.data.ticari_unvan || 'Bilinmeyen Cari',
             tutar: sonuc.data.tekil_tutar, vade: sonuc.data.baslangic_vadesi
         });
     };
 
-    // Dinamik Kolon Checkbox Dinleyicileri
-    ['chkColDuzenleme', 'chkColUnvan', 'chkColVade', 'chkColTutar'].forEach(id => {
-        document.getElementById(id).addEventListener('change', renderTeslimTablosu);
+    // Tüm kolon checkbox'larına event ekleyen zeka (Sürekli güncelleme için parent listener)
+    kolonKapsayici.addEventListener('change', (e) => {
+        if(e.target.type === 'checkbox') renderTeslimTablosu();
     });
+    
     inpTeslimDuzenleme.addEventListener('change', renderTeslimTablosu);
+    document.getElementById('ustTarihInput').addEventListener('change', renderTeslimTablosu);
 
-    // Yeni Kolon Ekleme ve İptal Etme (Electron uyumlu zeka)
+    // Yeni Kolon Ekleme Düğmesi
     document.getElementById('btnYeniKolon').addEventListener('click', () => {
         const isimInput = document.getElementById('yeniKolonAdiInput');
         const isim = isimInput.value;
+        if (!isim || isim.trim() === '') { bildirimGoster("Lütfen eklenecek sütunun adını yazın!", "error"); return; }
         
-        if (!isim || isim.trim() === '') {
-            bildirimGoster("Lütfen eklenecek sütunun adını yazın!", "error");
-            return;
+        // Zaten varsa uyarı ver
+        if(kolonKapsayici.querySelector('[data-id="ozel"]')) {
+            bildirimGoster("Zaten bir özel sütun eklenmiş durumda.", "error"); return;
         }
+
+        const div = document.createElement('div');
+        div.className = 'kolon-surukle'; div.draggable = true;
+        div.dataset.id = 'ozel'; div.dataset.title = isim.trim().toUpperCase();
+        div.style.cssText = 'padding: 6px 12px; background: #ecfdf5; border: 1px solid #10b981; border-radius: 6px; font-size: 12px; display:flex; align-items:center;';
+        div.innerHTML = `<span class="kolon-tutacagi" style="color:#10b981;">⋮⋮</span> <input type="checkbox" checked style="margin:0 6px;"> ${isim.trim()}`;
         
-        ozelKolonAdi = isim.trim();
-        document.getElementById('dinamikKolonBaslik').innerText = `${ozelKolonAdi} Veri Girişi`;
+        setDraggableEvents(div);
+        kolonKapsayici.appendChild(div);
+
+        document.getElementById('dinamikKolonBaslik').innerText = `${isim.trim()} Veri Girişi`;
         document.getElementById('dinamikVeriGirisiPaneli').style.display = 'block';
-        olusturDinamikInputlar('ayni'); 
-        renderTeslimTablosu();
-        
-        // İşlem bitince kutuyu temizle
+        olusturDinamikInputlar('ayni'); renderTeslimTablosu();
         isimInput.value = '';
     });
 
     document.getElementById('btnDinamikIptal').addEventListener('click', () => {
-        ozelKolonAdi = ''; ozelKolonVerileri = [];
+        const ozelDiv = kolonKapsayici.querySelector('[data-id="ozel"]');
+        if (ozelDiv) ozelDiv.remove();
+        ozelKolonVerileri = [];
         document.getElementById('dinamikVeriGirisiPaneli').style.display = 'none';
         renderTeslimTablosu();
     });
 
-    // Dinamik Veri Girişi (Aynı veya Farklı Değerler)
     document.querySelectorAll('input[name="veriTipi"]').forEach(radio => {
         radio.addEventListener('change', (e) => olusturDinamikInputlar(e.target.value));
     });
@@ -1082,22 +1151,16 @@
     function olusturDinamikInputlar(tip) {
         const container = document.getElementById('dinamikInputKapsayici'); container.innerHTML = '';
         ozelKolonVerileri = new Array(aktifTeslimVerisi.taksitSayisi).fill('');
-        
         if (tip === 'ayni') {
-            const input = document.createElement('input');
-            input.type = 'text'; input.className = 'form-control'; input.placeholder = 'Tüm senetler için aynı değeri buraya yazın...';
-            input.style.width = '350px';
-            input.addEventListener('input', (e) => {
-                ozelKolonVerileri = new Array(aktifTeslimVerisi.taksitSayisi).fill(e.target.value);
-                renderTeslimTablosu();
-            });
+            const input = document.createElement('input'); input.type = 'text'; input.className = 'form-control'; 
+            input.placeholder = 'Değeri yazın...'; input.style.width = '350px';
+            input.addEventListener('input', (e) => { ozelKolonVerileri = new Array(aktifTeslimVerisi.taksitSayisi).fill(e.target.value); renderTeslimTablosu(); });
             container.appendChild(input);
         } else {
             for (let i = 0; i < aktifTeslimVerisi.taksitSayisi; i++) {
                 const wrap = document.createElement('div'); wrap.style.display = 'flex'; wrap.style.flexDirection = 'column'; wrap.style.gap = '3px';
                 wrap.innerHTML = `<span style="font-size:11px; color:#64748b; font-weight:bold;">${i+1}. Senet:</span>`;
-                const input = document.createElement('input');
-                input.type = 'text'; input.className = 'form-control'; input.style.width = '130px';
+                const input = document.createElement('input'); input.type = 'text'; input.className = 'form-control'; input.style.width = '130px';
                 input.addEventListener('input', (e) => { ozelKolonVerileri[i] = e.target.value; renderTeslimTablosu(); });
                 wrap.appendChild(input); container.appendChild(wrap);
             }
@@ -1105,21 +1168,20 @@
         renderTeslimTablosu();
     }
 
-    // Modal Kapatma
     document.getElementById('btnTeslimIptal').addEventListener('click', () => teslimModal.style.display = 'none');
 
-    // Fişi Onayla ve Yazdır (Tüm kolon verilerini derler ve main.js e paketler)
     document.getElementById('btnTeslimOnayla').addEventListener('click', async () => {
         teslimModal.style.display = 'none'; document.body.focus();
 
-        // PDF İçin Ağırlıklı Dinamik Kolon Genişlik Hesaplaması (A4'e kusursuz oturtur)
         const weights = { sira: 1, duzenleme: 2, unvan: 4.5, vade: 2, tutar: 2.5, ozel: 2.5 };
+        
+        // HANGİ SIRAYLA GİDECEĞİNİ DOM'DAN ÇEK!
         const aktifKolonlar = [{ id: 'sira', title: 'SIRA' }];
-        if (document.getElementById('chkColDuzenleme').checked) aktifKolonlar.push({ id: 'duzenleme', title: 'DÜZENLEME' });
-        if (document.getElementById('chkColUnvan').checked) aktifKolonlar.push({ id: 'unvan', title: 'TİCARİ ÜNVAN' });
-        if (document.getElementById('chkColVade').checked) aktifKolonlar.push({ id: 'vade', title: 'VADE' });
-        if (document.getElementById('chkColTutar').checked) aktifKolonlar.push({ id: 'tutar', title: 'TUTAR' });
-        if (ozelKolonAdi !== '') aktifKolonlar.push({ id: 'ozel', title: ozelKolonAdi.toUpperCase() });
+        const uiKolonlar = kolonKapsayici.querySelectorAll('.kolon-surukle');
+        uiKolonlar.forEach(div => {
+            const chk = div.querySelector('input[type="checkbox"]');
+            if(chk && chk.checked) aktifKolonlar.push({ id: div.dataset.id, title: div.dataset.title });
+        });
 
         let totalWeight = aktifKolonlar.reduce((sum, c) => sum + (weights[c.id] || weights.ozel), 0);
         let currentX = 30; // StartX
@@ -1130,17 +1192,16 @@
             return result;
         });
 
-        // Tablodaki verileri çiğ string olarak paketleyip main.js'e atıyoruz
         const pdfSatirlari = [];
         const tbodyRows = document.getElementById('teslimTableBody').querySelectorAll('tr');
         for (let i = 0; i < aktifTeslimVerisi.taksitSayisi; i++) {
             const cells = tbodyRows[i].querySelectorAll('td');
-            const rowData = Array.from(cells).map(td => td.innerText);
-            pdfSatirlari.push(rowData);
+            pdfSatirlari.push(Array.from(cells).map(td => td.innerText));
         }
 
         const fisVerisi = {
             veritabaninaKaydet: islemModu === 'YENI', senetGecmisId: aktifSenetGecmisId,
+            ustTarih: document.getElementById('ustTarihInput').value,
             unvan: aktifTeslimVerisi.unvan, taksitSayisi: aktifTeslimVerisi.taksitSayisi,
             duzenlemeTarihi: inpTeslimDuzenleme.value,
             toplamTutarFloat: parseFloat(String(aktifTeslimVerisi.tutar).replace(/\./g, '').replace(',', '.')) * aktifTeslimVerisi.taksitSayisi,
@@ -1153,7 +1214,6 @@
             else bildirimGoster("Hata oluştu: " + sonuc.error, 'error');
         } catch (err) { console.error(err); }
     });
-
     // ========================================================================
     // --- EXCEL VE ORTAK MODAL YÖNETİMİ ---
     // ========================================================================
@@ -1238,12 +1298,14 @@
         const satirlar = gecmisTabloGövdesi.querySelectorAll('tr');
 
         satirlar.forEach(satir => {
-            if (satir.cells.length < 7) return; 
+            if (satir.cells.length < 8) return; // Kolon sayımız 8'e çıktı
 
-            const cariUnvan = satir.cells[1].innerText.toLowerCase();
-            const vadeTarihi = satir.cells[4].innerText.toLowerCase();
+            const senetNo = satir.cells[1].innerText.toLowerCase(); // Yeni Senet No kolonu
+            const cariUnvan = satir.cells[2].innerText.toLowerCase(); // Cari Ünvan 2. indekse kaydı
+            const vadeTarihi = satir.cells[5].innerText.toLowerCase(); // Vade Tarihi 5. indekse kaydı
 
-            if (cariUnvan.includes(aramaKelimesi) || vadeTarihi.includes(aramaKelimesi)) {
+            // Arama kutusuna yazılan kelime Cari, Vade veya SENET NO içinde varsa eşleşir
+            if (cariUnvan.includes(aramaKelimesi) || vadeTarihi.includes(aramaKelimesi) || senetNo.includes(aramaKelimesi)) {
                 satir.style.display = ''; 
             } else {
                 satir.style.display = 'none'; 
