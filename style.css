@@ -329,12 +329,13 @@ body {
     position: relative;
     width: 750px;
     height: 517px;
+    flex-shrink: 0; /* İŞTE EZİLMEYİ ÖNLEYEN SİHİRLİ KOD */
     background-image: url('senet.jpg');
     background-size: 100% 100%;
     margin: 0 auto 30px auto;
     box-shadow: var(--shadow-md);
     border-radius: 2px;
-    animation: darkenPaper 1.2s ease-in-out forwards; /* Modaldaki senetleri de dinlendirici tonla açar */
+    animation: darkenPaper 1.2s ease-in-out forwards; 
 }
 
 .preview-text {
