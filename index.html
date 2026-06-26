@@ -146,8 +146,13 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="tutar">Tekil Senet Tutarı (₺)</label>
-                        <input type="text" id="tutar" class="form-control" placeholder="0,00">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <label for="tutar" style="margin: 0;">Tekil Senet Tutarı (₺)</label>
+                            <label style="font-size: 11px; font-weight: 600; color: var(--accent-color); display: flex; align-items: center; gap: 4px; cursor: pointer; text-transform: none; letter-spacing: 0;">
+                                <input type="checkbox" id="chkOtomatikKurus" checked> Otomatik ,00
+                            </label>
+                        </div>
+                        <input type="text" id="tutar" class="form-control" placeholder="Örn: 12.000">
                     </div>
 
                     <div class="form-group">
@@ -861,6 +866,57 @@
         this.value = val;
         prevTutar.innerText = val ? `# ${val} #` : '# TUTAR #';
         prevTutarYazi.innerText = sayiyiYaziyaCevir(val);
+    });
+    // --- YENİ VE KUSURSUZ: Canlı Tutar Maskeleme Motoru ---
+    inpTutar.addEventListener('input', function(e) {
+        let val = this.value;
+        const otoKurus = document.getElementById('chkOtomatikKurus').checked;
+
+        if (otoKurus) {
+            // Şalter AÇIK: Virgül ve sonrasını çöpe at, sadece ana rakamı al
+            if (val.includes(',')) val = val.split(',')[0];
+            val = val.replace(/[^0-9]/g, '');
+
+            if (val !== "") {
+                val = val.replace(/\B(?=(\d{3})+(?!\d))/g, ".") + ',00';
+            }
+            
+            this.value = val;
+            
+            // İmleci her zaman virgülün hemen önüne sabitle (yağ gibi yazı yazdırır)
+            if (val !== "") {
+                let pos = val.indexOf(',');
+                this.setSelectionRange(pos, pos);
+            }
+        } else {
+            // Şalter KAPALI: Özgürce kuruş yazılabilir
+            val = val.replace(/[^0-9,]/g, '');
+            if (val.indexOf(',') > -1) {
+                let parts = val.split(',');
+                parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+                if(parts[1].length > 2) parts[1] = parts[1].substring(0, 2);
+                val = parts[0] + ',' + parts[1];
+            } else {
+                val = val.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+            }
+            this.value = val;
+        }
+
+        prevTutar.innerText = val ? `# ${val} #` : '# TUTAR #';
+        prevTutarYazi.innerText = sayiyiYaziyaCevir(val);
+    });
+
+    // Şalteri Açıp Kapattığında Anında Tepki Veren Tetikleyici
+    document.getElementById('chkOtomatikKurus').addEventListener('change', function() {
+        if (!this.checked && inpTutar.value.endsWith(',00')) {
+            // Şalter kapandığında gereksiz ,00'ı siler, rakamı özgür bırakır
+            inpTutar.value = inpTutar.value.replace(',00', '');
+        }
+        // Değeri güncelleyip önizlemelere anında yansıtır
+        if (inpTutar.value !== "") {
+            const event = new Event('input');
+            inpTutar.dispatchEvent(event);
+        }
     });
 
     inpVade.addEventListener('change', (e) => {
